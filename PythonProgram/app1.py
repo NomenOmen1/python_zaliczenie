@@ -2,7 +2,7 @@
 # 1. wgrywanie plików csv do bazy danych
 # 2. odpalam data quality rules które sprawdzają dane znajdujace sie w bazie danych
 # 3. zapisuje wyniki testow (KPI)
-# 4.prosty interfejs
+# 4. prosty interfejs
 
 
 import pandas as pd
