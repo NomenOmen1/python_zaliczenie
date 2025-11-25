@@ -8,14 +8,14 @@ def load_csv_to_db(csv_file, table_name):
     log = []
     try:
         df = pd.read_csv(csv_file, encoding='cp1250')
-        print(f"Wczytano {len(df)} wierszy z {csv_file}.")
+        log.append(f"Wczytano {len(df)} wierszy z {csv_file}.")
 
         df.columns = [col.strip().replace(';','') for col in df.columns]
 
         df = df.map(lambda x: str(x).replace(';','') if isinstance(x, str) else x)
 
         print(df)
-        print("Kolumny:", df.columns)
+        log.append(f"Kolumny: {list(df.columns)}")
 
         conn = mysql.connector.connect(**config)
         cursor = conn.cursor()
@@ -35,16 +35,18 @@ def load_csv_to_db(csv_file, table_name):
             cursor.execute(sql, tuple(row))
 
         conn.commit()
-        print(f"Pomyślnie zapisano lub zaktualizowano {len(df)} wierszy w tabeli {table_name}!")
+        log.append(f"Pomyślnie zapisano lub zaktualizowano {len(df)} wierszy w tabeli {table_name}!")
 
     except Error as e:
-        print("Błąd MySQL:", e)
+        log.append("Błąd MySQL:", e)
 
     finally:
         if 'conn' in locals() and conn.is_connected():
             cursor.close()
             conn.close()
-            print("Połączenie z bazą zamknięte.")
+            log.append("Połączenie z bazą zamknięte.")
+
+    return "\n".join(log)
 
 if __name__ == "__main__":
     load_csv_to_db("data_input.csv", "customers")

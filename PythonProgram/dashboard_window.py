@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import messagebox
 from admin_window import AdminWindow
 import time
 from csv_upload import load_csv_to_db
@@ -58,7 +59,7 @@ class DashboardWindow:
         self.root.destroy()
 
     def csv_file_upload(self):
-        load_csv_to_db("data_input.csv", "customers")
-        messagebox.showinfo(f"")
+        log = load_csv_to_db("data_input.csv", "customers")
+        messagebox.showinfo("CSV Uploaded", log)
 
 
