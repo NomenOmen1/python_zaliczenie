@@ -6,7 +6,7 @@ from dashboard_window import DashboardWindow
 class LoginWindow:
     def __init__(self, root):
         self.root = root
-        self.root.title("Logowanie")
+        self.root.title("Login panel")
         self.root.geometry("400x300")
 
         tk.Label(root, text="Username:").pack()
@@ -29,7 +29,7 @@ class LoginWindow:
             messagebox.showerror("Login Failed", error)
             return
 
-        messagebox.showinfo("Success", f"Zalogowano jako {logged_user}")
+        messagebox.showinfo("Success", f"Logged in as: {logged_user}")
 
         # Usuwamy okno logowania
         for widget in self.root.winfo_children():

@@ -16,7 +16,7 @@ class AdminWindow:
         self.root.title("Panel Admina")
         self.root.geometry(f"{self.window_width}x{self.window_height}")
 
-        tk.Label(root, text=f"ZALOGOWANO JAKO: {username}", anchor="e").pack(fill="x", padx=10, pady=10)
+        tk.Label(root, text=f"Logged in as: {username}", anchor="e").pack(fill="x", padx=10, pady=10)
 
         self.clock_label = tk.Label(root, textvariable=self.time_var, font=("Helvetica", 10))
         self.clock_label.pack(side="bottom", anchor="se", padx=10, pady=5)

@@ -1,6 +1,7 @@
 import tkinter as tk
 from admin_window import AdminWindow
 import time
+from csv_upload import load_csv_to_db
 
 class DashboardWindow:
     def __init__(self, root, username, role):
@@ -15,21 +16,23 @@ class DashboardWindow:
 
 
         # Pasek użytkownika
-        tk.Label(root,text=f"ZALOGOWANO JAKO: {username}",anchor="e").pack(fill="x", padx=10, pady=10)
+        tk.Label(root,text=f"Logged in as: {username}",anchor="e").pack(fill="x", padx=10, pady=10)
 
-        # Przycisk Panel Admina tylko dla admina
+        # Panel Admina tylko dla admina
         if role == "admin":
             tk.Button(root, text="Panel Admina", command=self.open_admin_panel).pack(pady=5)
 
-        # Przykładowe funkcje
-        tk.Button(root, text="Opcja 1").pack(pady=5)
-        tk.Button(root, text="Opcja 2").pack(side = "left", pady=5)
+        #BUTTONS
+        tk.Button(root, text="Upload CSV", command=self.csv_file_upload).pack(pady=5)
 
-        # ZEGAR
+        # ZEGAR + EXIT (Frame bottom)
 
         bottom_frame = tk.Frame(root)
         bottom_frame.pack(side = "bottom", fill="x")
 
+        # EXIT pozycja
+        tk.Button(bottom_frame, text="EXIT", command=self.exit_programm).pack(side="left", padx=10, pady=5)
+        #ZEGAR pozycja
         self.time_var = tk.StringVar()
         # self.clock_frame = tk.Frame(root)
         # self.clock_frame.pack(side="bottom", fill="x")
@@ -50,3 +53,12 @@ class DashboardWindow:
         # Tworzymy nowe okno admina
         admin_window = tk.Toplevel()
         admin_app = AdminWindow(admin_window, self.username, self.role, self.root, self.time_var)
+
+    def exit_programm(self):
+        self.root.destroy()
+
+    def csv_file_upload(self):
+        load_csv_to_db("data_input.csv", "customers")
+        messagebox.showinfo(f"")
+
+
