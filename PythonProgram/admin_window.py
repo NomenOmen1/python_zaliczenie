@@ -26,7 +26,7 @@ class AdminWindow:
         tk.Button(root, text="Deactivate User", command=self.deactivate_user).pack(pady=5)
 
         # POWRÓT
-        tk.Button(root, text="POWRÓT", command=self.go_back).pack(pady=15)
+        tk.Button(root, text="BACK", command=self.go_back).pack(pady=15)
 
     def go_back(self):
         self.root.destroy()               # zamykanie panelu admina

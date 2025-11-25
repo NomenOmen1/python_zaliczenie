@@ -31,7 +31,7 @@ class LoginWindow:
 
         messagebox.showinfo("Success", f"Logged in as: {logged_user}")
 
-        # Usuwamy okno logowania
+        # Usunięcie okna logowania
         for widget in self.root.winfo_children():
             widget.destroy()
 
