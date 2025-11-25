@@ -24,7 +24,7 @@ def change_password(username: str, new_password: str):
     cursor = conn.cursor()
     try:
         cursor.execute(
-            "UPDATE users SET password_hash=%s WHERE username=%s AND active=TRUE",
+            "UPDATE users SET password_hash=%s, active=TRUE WHERE username=%s",
             (password_hash, username)
         )
         if cursor.rowcount == 0:
