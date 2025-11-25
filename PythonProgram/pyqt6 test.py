@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtGui import QFont
 from PyQt6.QtCore import Qt
-from login import login_user
+from login_functions import login_user
 
 
 class MainWindow(QWidget):

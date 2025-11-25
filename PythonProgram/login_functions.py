@@ -69,3 +69,14 @@ def login_user(username: str, password: str):
     finally:
         cursor.close()
         conn.close()
+
+def get_all_users():
+    conn = mysql.connector.connect(**config)
+    cursor = conn.cursor()
+    try:
+        cursor.execute("Select username,active from users")
+        users = [row[0] for row in cursor.fetchall()]
+        return users
+    finally:
+        cursor.close()
+        conn.close()
