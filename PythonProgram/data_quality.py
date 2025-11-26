@@ -13,7 +13,7 @@ class DataQualityWindow:
         self.time_var = time_var
 
         self.root.title("Data Quality Panel")
-        self.root.geometry("2000x600")
+        self.root.geometry("2000x800")
 
         tk.Label(root, text=f"Logged in as: {username}", anchor="e").pack(fill="x", padx=10, pady=5)
 
@@ -23,24 +23,16 @@ class DataQualityWindow:
 
         tk.Button(root, text="BACK", command=self.go_back).pack(side="bottom", anchor="sw", padx=10, pady=5)
 
-        #Definiowanie TOP FRAME
+        # TOP FRAME - przyciski
         top_frame = tk.Frame(self.root)
         top_frame.pack(side="top", anchor="w", padx=10, pady=5)
 
-        # Add Rule
-        addRuleButton = tk.Button(top_frame, text="Add Rule", command=self.add_rule_window)
-        addRuleButton.pack(side="left", padx=5)
+        tk.Button(top_frame, text="Add Rule", command=self.add_rule_window).pack(side="left", padx=5)
+        tk.Button(top_frame, text="Deactivate Rule", command=self.deactivate_dq_rule).pack(side="left", padx=5)
+        tk.Button(top_frame, text="Modify Rule", command=self.modify_dq_rule).pack(side="left", padx=5)
 
-        # Deactivate Rule
-        deactivateRuleButton = tk.Button(top_frame, text="Deactivate Rule", command=self.deactivate_dq_rule)
-        deactivateRuleButton.pack(side="left", padx=5)
-
-        #Modify Rule
-        modifyRuleButton = tk.Button(top_frame, text = 'Modify Rule', command=self.modify_dq_rule)
-        modifyRuleButton.pack(side="left", padx=5)
-
-        # TREEVIEW LIVE
-        #tk.label(root, text="Archive Rules", font=("Helvetica", 12, "bold")).pack(pady=(10, 0))
+        # TREEVIEW LIVE RULES
+        tk.Label(root, text="Live Rules", font=("Helvetica", 12, "bold")).pack(pady=(10, 0))
         self.tree_frame = tk.Frame(root)
         self.tree_frame.pack(fill="both", expand=True)
 
@@ -66,7 +58,33 @@ class DataQualityWindow:
 
         self.load_rules()
 
-        # TREEVIEW ARCHIVE
+        # TREEVIEW ARCHIVED RULES
+        tk.Label(root, text="Archived Rules", font=("Helvetica", 12, "bold")).pack(pady=(10, 0))
+        self.archive_frame = tk.Frame(root)
+        self.archive_frame.pack(fill="both", expand=True)
+
+        self.archive_scroll_y = tk.Scrollbar(self.archive_frame, orient="vertical")
+        self.archive_scroll_y.pack(side="right", fill="y")
+        self.archive_scroll_x = tk.Scrollbar(self.archive_frame, orient="horizontal")
+        self.archive_scroll_x.pack(side="bottom", fill="x")
+
+        self.archive_tree = ttk.Treeview(
+            self.archive_frame,
+            columns=("id", "rule_id", "status", "version", "description", "rule_type", "sql_query", "changed_by", "changed_at"),
+            yscrollcommand=self.archive_scroll_y.set,
+            xscrollcommand=self.archive_scroll_x.set,
+            show="headings"
+        )
+        self.archive_tree.pack(fill="both", expand=True)
+        self.archive_scroll_y.config(command=self.archive_tree.yview)
+        self.archive_scroll_x.config(command=self.archive_tree.xview)
+
+        for col in self.archive_tree["columns"]:
+            self.archive_tree.heading(col, text=col)
+            self.archive_tree.column(col, anchor=tk.CENTER)
+
+        self.load_archive_rules()
+
 
 
 
