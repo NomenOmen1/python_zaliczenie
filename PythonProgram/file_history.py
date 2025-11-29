@@ -14,7 +14,7 @@ class FileHistory():
         self.time_var = time_var
 
         self.root.title("File History")
-        self.root.geometry("2000x800")
+        self.root.geometry("900x800")
 
         tk.Label(root, text=f"Logged in as: {username}", anchor="e").pack(fill="x", padx=10, pady=5)
 
@@ -45,9 +45,19 @@ class FileHistory():
         self.tree_scroll_y.config(command=self.tree.yview)
         self.tree_scroll_x.config(command=self.tree.xview)
 
+        # Ustawienia szerokości kolumn
+        column_widths = {
+            "id": 60,
+            "table_name": 150,
+            "file_name": 270,
+            "row_count": 100,
+            "loaded_by": 120,
+            "loaded_at": 160
+        }
+
         for col in self.tree["columns"]:
             self.tree.heading(col, text=col)
-            self.tree.column(col, anchor=tk.CENTER)
+            self.tree.column(col, width=column_widths[col], anchor=tk.CENTER, stretch=False)
 
             self.import_data_load_log()
 

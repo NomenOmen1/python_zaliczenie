@@ -23,13 +23,30 @@ class DashboardWindow:
         tk.Label(root,text=f"Logged in as: {username}",anchor="e").pack(fill="x", padx=10, pady=10)
 
         # Panel Admina tylko dla admina
+        # if role == "admin":
+        #     tk.Button(root, text="Panel Admina", command=self.open_admin_panel).pack(pady=5)
+
+        frame = tk.Frame(self.root)
+        frame.pack(padx=35, pady=20, fill="x", expand=True)
+
         if role == "admin":
-            tk.Button(root, text="Panel Admina", command=self.open_admin_panel).pack(pady=5)
+            button1 = tk.Button(frame, text="Panel Admina", command=self.open_admin_panel)
+            button1.grid(row=0, column=0, sticky="nsew", pady=(0,20))
+
+        button2 = tk.Button(frame, text="Data Quality", command=self.open_dq_panel)
+        button3 = tk.Button(frame, text="Upload CSV", command=self.load_csv_and_log)
+        button4 = tk.Button(frame, text="File History", command=self.open_file_history)
+
+        button2.grid(row=1, column=0, sticky="nsew", pady=(0,5))
+        button3.grid(row=2, column=0, sticky="nsew", pady=(0,5))
+        button4.grid(row=3, column=0, sticky="nsew", pady=(0,5))
+
+        frame.grid_columnconfigure(0, weight=1)
 
         #BUTTONS
-        tk.Button(root, text="Data Quality", command=self.open_dq_panel).pack(pady=5)
-        tk.Button(root, text="Upload CSV", command=self.load_csv_and_log).pack(pady=5)
-        tk.Button(root, text="File History", command=self.open_file_history).pack(pady=5)
+        # tk.Button(root, text="Data Quality", command=self.open_dq_panel).pack(pady=5)
+        # tk.Button(root, text="Upload CSV", command=self.load_csv_and_log).pack(pady=5)
+        # tk.Button(root, text="File History", command=self.open_file_history).pack(pady=5)
 
         # ZEGAR + EXIT (Frame bottom)
 
