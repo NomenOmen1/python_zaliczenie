@@ -77,6 +77,9 @@ class DataQualityWindow:
             self.tree.heading(col, text=col)
             self.tree.column(col, width=live_column_widths[col], anchor=tk.CENTER)
 
+        for col in self.tree["columns"]:
+            self.tree.heading(col, text=col, command=lambda _col=col: self.treeview_sort_column(self.tree, _col, False))
+
         self.load_rules()
 
         middle_frame = tk.Frame(self.root)
@@ -120,6 +123,11 @@ class DataQualityWindow:
         for col in self.archive_tree["columns"]:
             self.archive_tree.heading(col, text=col)
             self.archive_tree.column(col, width=archive_column_widths[col], anchor=tk.CENTER)
+
+        for col in self.archive_tree["columns"]:
+            self.archive_tree.heading(col, text=col,
+                                      command=lambda _col=col: self.treeview_sort_column(self.archive_tree, _col,
+                                                                                         False))
 
         self.load_archive_rules()
 
@@ -395,6 +403,22 @@ class DataQualityWindow:
         self.root.withdraw()
         new_window = tk.Toplevel(self.root)
         CheckDqPanel(new_window, self.username, self.role, self.root, self.time_var)
+
+    def treeview_sort_column(self, tree, col, reverse):
+        data_list = [(tree.set(k, col), k) for k in tree.get_children('')]
+        try:
+            data_list.sort(key=lambda t: float(t[0]), reverse=reverse)
+        except ValueError:
+            data_list.sort(key=lambda t: t[0], reverse=reverse)
+
+        # Przestaw wiersze
+        for index, (val, k) in enumerate(data_list):
+            tree.move(k, '', index)
+
+        # Odwrócenie kolejności dla następnego kliknięcia
+        tree.heading(col, command=lambda: self.treeview_sort_column(tree, col, not reverse))
+
+
 
 
 
