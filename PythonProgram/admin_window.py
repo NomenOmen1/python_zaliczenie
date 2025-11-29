@@ -21,12 +21,27 @@ class AdminWindow:
         self.clock_label = tk.Label(root, textvariable=self.time_var, font=("Helvetica", 10))
         self.clock_label.pack(side="bottom", anchor="se", padx=10, pady=5)
 
-        tk.Button(root, text="Nowy Użytkownik", command=self.add_user).pack(pady=5)
-        tk.Button(root, text="Zmień Hasło", command=self.change_password).pack(pady=5)
-        tk.Button(root, text="Deactivate User", command=self.deactivate_user).pack(pady=5)
+        # tk.Button(root, text="Nowy Użytkownik", command=self.add_user).pack(pady=5)
+        # tk.Button(root, text="Zmień Hasło", command=self.change_password).pack(pady=5)
+        # tk.Button(root, text="Deactivate User", command=self.deactivate_user).pack(pady=5)
+
+        frame = tk.Frame(self.root)
+        frame.pack(padx=10, pady=10, fill="x")
+
+        button1 = tk.Button(frame, text="Nowy Użytkownik", command=self.add_user)
+        button2 = tk.Button(frame, text="Zmień Hasło", command=self.change_password)
+        button3 = tk.Button(frame, text="Deactivate User", command=self.deactivate_user)
+
+        button1.grid(row=0, column=0, sticky="nsew")
+        button2.grid(row=0, column=1, sticky="nsew")
+        button3.grid(row=0, column=2, sticky="nsew")
+
+        frame.grid_columnconfigure(0, weight=1)
+        frame.grid_columnconfigure(1, weight=1)
+        frame.grid_columnconfigure(2, weight=1)
 
         # POWRÓT
-        tk.Button(root, text="BACK", command=self.go_back).pack(pady=15)
+        tk.Button(root, text="BACK", command=self.go_back).pack(side="bottom", anchor="sw", padx=10, pady=15)
 
     def go_back(self):
         self.root.destroy()               # zamykanie panelu admina

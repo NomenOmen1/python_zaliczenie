@@ -119,7 +119,7 @@ class DataQualityWindow:
                 self.tree.insert("", "end", values=row)
 
         except mysql.connector.Error as e:
-            messagebox.showerror("Błąd", f"Błąd bazy danych: {e}")
+            messagebox.showerror("Error", f"Database error: {e}")
         finally:
             if 'cursor' in locals():
                 cursor.close()

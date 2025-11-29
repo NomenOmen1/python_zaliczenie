@@ -4,6 +4,7 @@ from admin_window import AdminWindow
 import time
 from csv_upload import load_csv_and_log
 from data_quality import DataQualityWindow
+from file_history import FileHistory
 
 
 class DashboardWindow:
@@ -26,9 +27,9 @@ class DashboardWindow:
             tk.Button(root, text="Panel Admina", command=self.open_admin_panel).pack(pady=5)
 
         #BUTTONS
-        tk.Button(root, text="Upload CSV", command=self.load_csv_and_log).pack(pady=5)
-
         tk.Button(root, text="Data Quality", command=self.open_dq_panel).pack(pady=5)
+        tk.Button(root, text="Upload CSV", command=self.load_csv_and_log).pack(pady=5)
+        tk.Button(root, text="File History", command=self.open_file_history).pack(pady=5)
 
         # ZEGAR + EXIT (Frame bottom)
 
@@ -71,12 +72,17 @@ class DashboardWindow:
             log = load_csv_and_log("data_input.csv", "customers", self.username)
             messagebox.showinfo("CSV Uploaded", log)
         if not file_path:
-            messagebox.showerror("Error", "No file selected")
+            messagebox.showerror("Error", "No file was selected")
 
     def open_dq_panel(self):
         self.root.withdraw()
         dq_panel = tk.Toplevel()
         dq_app = DataQualityWindow(dq_panel, self.username, self.role, self.root, self.time_var)
+
+    def open_file_history(self):
+        self.root.withdraw()
+        file_history_window= tk.Toplevel()
+        file_history_app = FileHistory(file_history_window, self.username, self.role, self.root, self.time_var)
 
 
 
