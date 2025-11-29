@@ -231,7 +231,7 @@ class DataQualityWindow:
         try:
             # Pobierz aktywnego rula
             cursor.execute("""
-                SELECT id, status, version, description, rule_type, sql_query, created_at
+                SELECT id, status, version, description, rule_type, target_table, sql_query, created_at
                 FROM dq_rules
                 WHERE id=%s AND status='ACTIVE'
             """, (rule_id,))
@@ -241,7 +241,7 @@ class DataQualityWindow:
                 messagebox.showinfo("Info", "This rule is already inactive")
                 return
 
-            rid, status, version, desc, rule_type, sql_query, created_at = row
+            rid, status, version, desc, rule_type, target_table, sql_query, created_at = row
 
             # --- wersja do archiwizacji ---
             archived_version = version if version else "1.0"
@@ -256,15 +256,16 @@ class DataQualityWindow:
             # --- Archiwizacja ---
             cursor.execute("""
                 INSERT INTO dq_rules_history
-                (rule_id, version, status, created_at, description, rule_type, rule_params,
+                (rule_id, version, status, created_at, description, rule_type, target_table, rule_params,
                  deactivated_by, deactivated_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s,
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s,
                         %s, NOW())
             """, (
                 rid, archived_version, "INACTIVE",
                 created_at,
                 desc,
                 rule_type,
+                target_table,
                 rule_params_json,
                 self.username
             ))
@@ -300,17 +301,19 @@ class DataQualityWindow:
             messagebox.showwarning("Warning", "Select Rule from Archived Rules")
             return
 
-        # Pierwsza kolumna to history_id
-        history_id = self.archive_tree.item(selected[0], "values")[0]
+        # Pierwsza kolumna to rule_id w drzewie
+        rule_id = self.archive_tree.item(selected[0], "values")[0]
 
-        # Pobierz dane z ARCHIWUM
+        # Pobierz dane z ARCHIWUM (najnowsza wersja)
         conn = mysql.connector.connect(**config)
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT rule_id, description, rule_type, rule_params, version
+            SELECT history_id, rule_id, description, rule_type, target_table, rule_params, version
             FROM dq_rules_history
-            WHERE history_id=%s
-        """, (history_id,))
+            WHERE rule_id=%s
+            ORDER BY history_id DESC
+            LIMIT 1
+        """, (rule_id,))
         row = cursor.fetchone()
         cursor.close()
         conn.close()
@@ -319,9 +322,9 @@ class DataQualityWindow:
             messagebox.showerror("Error", "Rule not found in database")
             return
 
-        rule_id, current_desc, current_type, rule_params_json, archived_version = row
+        history_id, rule_id, current_desc, current_type, target_table, rule_params_json, archived_version = row
 
-        # rule_params to JSON -> pobieramy SQL
+        # JSON rule_params -> SQL
         params = json.loads(rule_params_json)
         current_sql = params.get("sql_query", "")
 
@@ -352,11 +355,8 @@ class DataQualityWindow:
             conn = mysql.connector.connect(**config)
             cursor = conn.cursor()
 
-            cursor.execute("""
-                    SELECT COUNT(*) 
-                    FROM dq_rules 
-                    WHERE id=%s AND status='ACTIVE'
-                """, (rule_id,))
+            # Sprawdź czy rule jest aktywne
+            cursor.execute("SELECT COUNT(*) FROM dq_rules WHERE id=%s AND status='ACTIVE'", (rule_id,))
             active_count = cursor.fetchone()[0]
 
             if active_count > 0:
@@ -365,12 +365,12 @@ class DataQualityWindow:
                 conn.close()
                 return
 
-            #inkrementacja wersji
+            # Inkrementacja wersji
             major, minor = archived_version.split(".")
             minor = int(minor) + 1
             new_version = f"{major}.{minor}"
 
-            # Aktualizacja live rula
+            # Aktualizacja live rule
             cursor.execute("""
                 UPDATE dq_rules
                 SET description=%s,
@@ -381,15 +381,6 @@ class DataQualityWindow:
                     activated_at=NOW()
                 WHERE id=%s
             """, (new_desc, new_type, new_sql, new_version, rule_id))
-
-            cursor.execute("""
-                UPDATE dq_rules
-                SET description=%s,
-                    rule_type=%s,
-                    sql_query=%s,
-                    status='ACTIVE'
-                WHERE id=%s
-            """, (new_desc, new_type, new_sql, rule_id))
 
             conn.commit()
             cursor.close()
