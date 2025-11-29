@@ -9,6 +9,7 @@ from login_window import LoginWindow
 def main():
     root = tk.Tk()
     app = LoginWindow(root)
+    #app.pack
     root.mainloop()
 
 if __name__ == "__main__":

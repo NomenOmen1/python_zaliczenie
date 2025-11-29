@@ -9,7 +9,7 @@ class LoginWindow:
         self.root.title("Login panel")
         self.root.geometry("400x300")
 
-        tk.Label(root, text="Username:").pack()
+        tk.Label(root, text="Username:").pack(pady=(30,0))
         self.username_entry = tk.Entry(root)
         self.username_entry.pack()
 
