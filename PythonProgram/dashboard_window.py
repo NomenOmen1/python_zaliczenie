@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import messagebox, filedialog
 from admin_window import AdminWindow
 import time
-from csv_upload import load_csv_to_db
+from csv_upload import load_csv_and_log
 from data_quality import DataQualityWindow
 
 
@@ -26,7 +26,7 @@ class DashboardWindow:
             tk.Button(root, text="Panel Admina", command=self.open_admin_panel).pack(pady=5)
 
         #BUTTONS
-        tk.Button(root, text="Upload CSV", command=self.csv_file_upload).pack(pady=5)
+        tk.Button(root, text="Upload CSV", command=self.load_csv_and_log).pack(pady=5)
 
         tk.Button(root, text="Data Quality", command=self.open_dq_panel).pack(pady=5)
 
@@ -62,13 +62,13 @@ class DashboardWindow:
     def exit_programm(self):
         self.root.destroy()
 
-    def csv_file_upload(self):
+    def load_csv_and_log(self):
         file_path = filedialog.askopenfilename(
             title="Choose CSV file",
             filetypes=(("CSV Files", "*.csv"), ("All Files", "*.*"))
         )
         if file_path:
-            log = load_csv_to_db("data_input.csv", "customers")
+            log = load_csv_and_log("data_input.csv", "customers", self.username)
             messagebox.showinfo("CSV Uploaded", log)
         if not file_path:
             messagebox.showerror("Error", "No file selected")

@@ -32,3 +32,5 @@ class CheckDqPanel:
         self.root.destroy()
         self.data_quality_root.deiconify()
 
+
+
