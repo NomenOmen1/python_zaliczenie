@@ -74,11 +74,8 @@ class DataQualityWindow:
         }
 
         for col in self.tree["columns"]:
-            self.tree.heading(col, text=col)
-            self.tree.column(col, width=live_column_widths[col], anchor=tk.CENTER)
-
-        for col in self.tree["columns"]:
             self.tree.heading(col, text=col, command=lambda _col=col: self.treeview_sort_column(self.tree, _col, False))
+            self.tree.column(col, width=live_column_widths[col], anchor=tk.CENTER)
 
         self.load_rules()
 
@@ -120,14 +117,10 @@ class DataQualityWindow:
             "deactivated_at": 60,
         }
 
-        for col in self.archive_tree["columns"]:
-            self.archive_tree.heading(col, text=col)
-            self.archive_tree.column(col, width=archive_column_widths[col], anchor=tk.CENTER)
 
         for col in self.archive_tree["columns"]:
-            self.archive_tree.heading(col, text=col,
-                                      command=lambda _col=col: self.treeview_sort_column(self.archive_tree, _col,
-                                                                                         False))
+            self.archive_tree.heading(col, text=col, command=lambda _col=col: self.treeview_sort_column(self.archive_tree, _col, False))
+            self.archive_tree.column(col, width=archive_column_widths[col], anchor=tk.CENTER)
 
         self.load_archive_rules()
 
