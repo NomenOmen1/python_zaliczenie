@@ -53,7 +53,7 @@ class DataQualityWindow:
 
         self.tree = ttk.Treeview(
             self.tree_frame,
-            columns=("id", "status", "created_at", "activated_at", "version", "description", "rule_type", "sql_query"),
+            columns=("id", "status", "created_at", "activated_at", "version", "description", "rule_type", "target_table", "sql_query"),
             yscrollcommand=self.tree_scroll_y.set,
             xscrollcommand=self.tree_scroll_x.set,
             show="headings"
@@ -70,6 +70,7 @@ class DataQualityWindow:
             "version": 20,
             "description": 160,
             "rule_type": 30,
+            "target_table": 30,
             "sql_query": 40,
         }
 
@@ -95,7 +96,8 @@ class DataQualityWindow:
 
         self.archive_tree = ttk.Treeview(
             self.archive_frame,
-            columns=("history_id", "rule_id", "version", "status", "created_at", "description", "rule_type", "rule_params", "deactivated_by", "deactivated_at"),
+            columns=(#"history_id",
+                     "rule_id", "version", "status", "created_at", "description", "rule_type", "target_table", "rule_params", "deactivated_by", "deactivated_at"),
             yscrollcommand=self.archive_scroll_y.set,
             xscrollcommand=self.archive_scroll_x.set,
             show="headings"
@@ -105,13 +107,14 @@ class DataQualityWindow:
         self.archive_scroll_x.config(command=self.archive_tree.xview)
 
         archive_column_widths = {
-            "history_id": 20,
+            #"history_id": 20,
             "rule_id": 20,
             "version": 20,
             "status": 50,
             "created_at": 60,
             "description": 160,
             "rule_type": 50,
+            "target_table": 30,
             "rule_params": 160,
             "deactivated_by": 40,
             "deactivated_at": 60,
@@ -132,7 +135,7 @@ class DataQualityWindow:
         try:
             conn = mysql.connector.connect(**config)
             cursor = conn.cursor()
-            cursor.execute("SELECT id, status, created_at, activated_at, version, description, rule_type, sql_query FROM dq_rules WHERE status = 'active'")
+            cursor.execute("SELECT id, status, created_at, activated_at, version, description, rule_type, target_table, sql_query FROM dq_rules WHERE status = 'active'")
             rows = cursor.fetchall()
 
             for row in rows:
@@ -147,6 +150,18 @@ class DataQualityWindow:
                 conn.close()
 
 #####################################################
+    def get_tables(self):
+        try:
+            conn = mysql.connector.connect(**config)
+            cursor = conn.cursor()
+            cursor.execute("SHOW TABLES")
+            all_tables = [row[0] for row in cursor.fetchall()]
+        finally:
+            cursor.close()
+            conn.close()
+
+        excluded = {"dq_rules", "dq_rules_history", "data_load_log", "dq_results"}  #TABLICE DO EXCLUDE
+        return [t for t in all_tables if t not in excluded]
     def add_rule_window(self):
         win = tk.Toplevel(self.root)
         win.title("Add new DQ Rule")
@@ -159,6 +174,18 @@ class DataQualityWindow:
         type_entry = tk.Entry(win)
         type_entry.pack()
 
+        ##------------ target
+        tk.Label(win, text="Target Table:").pack()
+        tables = self.get_tables()  # Dynamiczne pobranie tabel z DB
+        target_table = tk.StringVar()
+
+        table_dropdown = ttk.Combobox(win, values=tables, textvariable=target_table, state="readonly")
+        table_dropdown.pack()
+        ##------------ target koniec
+
+        if tables:
+            table_dropdown.current(0)
+
         tk.Label(win, text="SQL Query:").pack()
         sql_entry = tk.Text(win, height=5, width=60)
         sql_entry.pack()
@@ -167,12 +194,18 @@ class DataQualityWindow:
             desc = desc_entry.get()
             rule_type = type_entry.get()
             sql_query = sql_entry.get("1.0", "end-1c")
+            target_table_name = target_table.get()
+
+            if not target_table_name:
+                messagebox.showerror("Error", "Select a target table")
+                return
 
             conn = mysql.connector.connect(**config)
             cursor = conn.cursor()
             cursor.execute(
-                "INSERT INTO dq_rules (description, rule_type, sql_query, version) VALUES (%s, %s, %s, %s)",
-                (desc, rule_type, sql_query, "1.0")
+                "INSERT INTO dq_rules (description, rule_type, target_table, sql_query, version) "
+                "VALUES (%s, %s, %s, %s, %s)",
+                (desc, rule_type, target_table_name, sql_query, "1.0")
             )
             conn.commit()
             cursor.close()
@@ -376,7 +409,7 @@ class DataQualityWindow:
             conn = mysql.connector.connect(**config)
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT *
+                SELECT rule_id, version, status, created_at, description, rule_type, target_table, rule_params, deactivated_by, deactivated_at
                 FROM dq_rules_history
             """)
             rows = cursor.fetchall()
