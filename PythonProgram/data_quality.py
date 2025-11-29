@@ -4,6 +4,7 @@ import mysql.connector
 from db_config import config
 import time
 import json
+from check_dq_panel import CheckDqPanel
 
 class DataQualityWindow:
     def __init__(self, root, username, role, dashboard_root, time_var):
@@ -26,10 +27,18 @@ class DataQualityWindow:
 
         # TOP FRAME - przyciski
         top_frame = tk.Frame(self.root)
-        top_frame.pack(side="top", anchor="w", padx=10, pady=5)
+        top_frame.pack(side="top", fill="x", padx=10, pady=5)
 
-        tk.Button(top_frame, text="Add Rule", command=self.add_rule_window).pack(side="left", padx=5)
-        tk.Button(top_frame, text="Deactivate Rule", command=self.deactivate_dq_rule).pack(side="left", padx=5)
+        #left frame
+        left_frame = tk.Frame(top_frame)
+        left_frame.pack(side="left", anchor="w", padx=10, pady=5)
+        tk.Button(left_frame, text="Add Rule", command=self.add_rule_window).pack(side="left", padx=5)
+        tk.Button(left_frame, text="Deactivate Rule", command=self.deactivate_dq_rule).pack(side="left", padx=5)
+
+        #right frame
+        right_frame = tk.Frame(top_frame)
+        right_frame.pack(side="right", padx=10, pady=5)
+        tk.Button(right_frame, text="Check DQ", command=self.check_dq_panel).pack(side="right", padx=15, pady=10)
 
 
         # TREEVIEW LIVE RULES
@@ -348,6 +357,12 @@ class DataQualityWindow:
                 cursor.close()
             if 'conn' in locals() and conn.is_connected():
                 conn.close()
+
+    def check_dq_panel(self):
+        self.root.withdraw()
+        new_window = tk.Toplevel(self.root)
+        CheckDqPanel(new_window, self.username, self.role, self.root, self.time_var)
+
 
 
 
