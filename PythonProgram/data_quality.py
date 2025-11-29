@@ -332,7 +332,7 @@ class DataQualityWindow:
                 conn.close()
                 return
 
-            # --- inkrementacja wersji przy restore ---
+            #inkrementacja wersji
             major, minor = archived_version.split(".")
             minor = int(minor) + 1
             new_version = f"{major}.{minor}"
@@ -404,11 +404,11 @@ class DataQualityWindow:
         except ValueError:
             data_list.sort(key=lambda t: t[0], reverse=reverse)
 
-        # Przestaw wiersze
+        #Przestawiam wiersze
         for index, (val, k) in enumerate(data_list):
             tree.move(k, '', index)
 
-        # Odwrócenie kolejności dla następnego kliknięcia
+        #Odwracam kolejność z kolejnym kliknięciem
         tree.heading(col, command=lambda: self.treeview_sort_column(tree, col, not reverse))
 
 
