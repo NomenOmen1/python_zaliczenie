@@ -15,7 +15,7 @@ class DataQualityWindow:
         self.time_var = time_var
 
         self.root.title("Data Quality Panel")
-        self.root.geometry("2000x800")
+        self.root.geometry("1600x800")
 
         tk.Label(root, text=f"Logged in as: {username}", anchor="e").pack(fill="x", padx=10, pady=5)
 
@@ -62,11 +62,20 @@ class DataQualityWindow:
         self.tree_scroll_y.config(command=self.tree.yview)
         self.tree_scroll_x.config(command=self.tree.xview)
 
+        live_column_widths = {
+            "id": 20,
+            "status": 40,
+            "created_at": 60,
+            "activated_at": 60,
+            "version": 20,
+            "description": 160,
+            "rule_type": 30,
+            "sql_query": 40,
+        }
+
         for col in self.tree["columns"]:
             self.tree.heading(col, text=col)
-            self.tree.column(col, anchor=tk.CENTER)
-
-
+            self.tree.column(col, width=live_column_widths[col], anchor=tk.CENTER)
 
         self.load_rules()
 
@@ -95,14 +104,24 @@ class DataQualityWindow:
         self.archive_scroll_y.config(command=self.archive_tree.yview)
         self.archive_scroll_x.config(command=self.archive_tree.xview)
 
+        archive_column_widths = {
+            "history_id": 20,
+            "rule_id": 20,
+            "version": 20,
+            "status": 50,
+            "created_at": 60,
+            "description": 160,
+            "rule_type": 50,
+            "rule_params": 160,
+            "deactivated_by": 40,
+            "deactivated_at": 60,
+        }
+
         for col in self.archive_tree["columns"]:
             self.archive_tree.heading(col, text=col)
-            self.archive_tree.column(col, anchor=tk.CENTER)
+            self.archive_tree.column(col, width=archive_column_widths[col], anchor=tk.CENTER)
 
         self.load_archive_rules()
-
-
-
 
     def go_back(self):
         self.root.destroy()
@@ -299,6 +318,19 @@ class DataQualityWindow:
             conn = mysql.connector.connect(**config)
             cursor = conn.cursor()
 
+            cursor.execute("""
+                    SELECT COUNT(*) 
+                    FROM dq_rules 
+                    WHERE id=%s AND status='ACTIVE'
+                """, (rule_id,))
+            active_count = cursor.fetchone()[0]
+
+            if active_count > 0:
+                messagebox.showerror("Error", f"Rule {rule_id} is already active and cannot be modified from archive.")
+                cursor.close()
+                conn.close()
+                return
+
             # --- inkrementacja wersji przy restore ---
             major, minor = archived_version.split(".")
             minor = int(minor) + 1
@@ -311,7 +343,8 @@ class DataQualityWindow:
                     rule_type=%s,
                     sql_query=%s,
                     status='ACTIVE',
-                    version=%s
+                    version=%s,
+                    activated_at=NOW()
                 WHERE id=%s
             """, (new_desc, new_type, new_sql, new_version, rule_id))
 
