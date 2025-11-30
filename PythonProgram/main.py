@@ -5,6 +5,7 @@
 # WYBÓR DQ RULE
 # ODPALANIE RULI ZBUORCZO ALBO POJEDYNCZO
 # CSV PLIK WRAZ Z CONCAT RULE_ID ORAZ ERROR MESSAGE DLA DQ_CHECK = 0 WYNIKÓW
+# dq_field_results <- tutaj beda wyniki testow
 
 
 import tkinter as tk

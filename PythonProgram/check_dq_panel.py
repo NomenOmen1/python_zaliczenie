@@ -49,7 +49,7 @@ class CheckDqPanel:
             cursor.close()
             conn.close()
 
-        excluded = {"dq_rules", "dq_rules_history", "data_load_log", "dq_results"}
+        excluded = {"dq_rules", "dq_rules_history", "data_load_log", "dq_results", "dq_field_results"}
         return [t for t in all_tables if t not in excluded]
 
     def get_active_rules_for_table(self, table_name):
@@ -185,6 +185,7 @@ class CheckDqPanel:
         conn = mysql.connector.connect(**config)
         cursor = conn.cursor(dictionary=True)
 
+        # Pobranie zapytania i wersji reguły
         cursor.execute(
             "SELECT sql_query, version FROM dq_rules WHERE id=%s AND status='ACTIVE'",
             (rule_id,)
@@ -196,47 +197,40 @@ class CheckDqPanel:
             conn.close()
             return
 
-        sql_query, rule_version = row
+        sql_query, rule_version = row  # <-- dokładnie taka wersja, jak w tabeli
 
-        # Obsługa błędów SQL
         try:
             cursor.execute(sql_query)
-            failed_records = cursor.fetchall()
+            records = cursor.fetchall()
         except mysql.connector.Error as e:
             messagebox.showerror("SQL Error", f"Error executing rule {rule_id}:\n{e}")
             cursor.close()
             conn.close()
             return
 
-        failed_count = len(failed_records)
-
-        try:
-            cursor.execute(f"SELECT COUNT(*) as total FROM {table}")
-            total_count = cursor.fetchone()["total"]
-        except mysql.connector.Error as e:
-            messagebox.showerror("SQL Error", f"Error counting records in table {table}:\n{e}")
-            cursor.close()
-            conn.close()
-            return
-
-        passed_count = total_count - failed_count
-        sample_failed_records = json.dumps(failed_records[:5])
         timestamp = datetime.now()
+        failed_count = 0
+        passed_count = 0
 
-        try:
-            cursor.execute(
-                """
-                INSERT INTO dq_results
-                (rule_id, rule_version, failed_count, passed_count, sample_failed_records, timestamp)
-                VALUES (%s, %s, %s, %s, %s, %s)
-                """,
-                (rule_id, rule_version, failed_count, passed_count, sample_failed_records, timestamp)
-            )
-        except mysql.connector.Error as e:
-            messagebox.showerror("SQL Error", f"Error inserting DQ results for rule {rule_id}:\n{e}")
-            cursor.close()
-            conn.close()
-            return
+        # Wstawienie wyników do dq_field_results
+        for record in records:
+            record_id = record.get('id', '')  # lub inna kolumna identyfikująca rekord
+            for field_name, field_value in record.items():
+                test_result = record.get('dq_check', 1)  # 0 = fail, 1 = pass
+                if test_result == 0:
+                    failed_count += 1
+                else:
+                    passed_count += 1
+                error_message = record.get('error_message', '') if test_result == 0 else ''
+                cursor.execute(
+                    """
+                    INSERT INTO dq_field_results
+                    (rule_id, rule_version, record_id, field_name, field_value, test_result, error_message, timestamp, target_table)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """,
+                    (rule_id, rule_version, str(record_id), field_name, str(field_value),
+                     test_result, error_message, timestamp, table)
+                )
 
         conn.commit()
         cursor.close()
