@@ -65,6 +65,7 @@ class CheckDqPanel:
         dialog = tk.Toplevel(self.root)
         dialog.title("Run DQ Rules")
         dialog.geometry("400x300")
+        # POTESTUJ TO BO FAJNIE GDYBY DZIAŁAŁO ! place_window(self.root, width=400, height=300)
 
         # Dropdown tabel
         available_tables = self.get_tables_to_dq_check()
@@ -120,11 +121,13 @@ class CheckDqPanel:
     def run_all_dq_rules(self, table):
         conn = mysql.connector.connect(**config)
         cursor = conn.cursor(dictionary=True)
+        all_records_for_csv = []
 
         try:
             # Pobranie aktywnych reguł
             cursor.execute(
-                "SELECT id, sql_query, version, target_table, error_message FROM dq_rules WHERE status='ACTIVE' AND target_table=%s",
+                "SELECT id, sql_query, version, target_table, error_message "
+                "FROM dq_rules WHERE status='ACTIVE' AND target_table=%s",
                 (table,)
             )
             rules = cursor.fetchall()
@@ -133,7 +136,7 @@ class CheckDqPanel:
                 messagebox.showinfo("Info", f"No active rules for table {table}.")
                 return
 
-            total_rules = len(rules)  # --> ZMIANA: Liczymy ile reguł odpalamy
+            total_rules = len(rules)
             rules_executed = 0
             results_summary = []
 
@@ -156,7 +159,7 @@ class CheckDqPanel:
                     messagebox.showinfo("Info", f"Rule {rule_id} returned no records.")
                     continue
 
-                # --> ZMIANA: Liczymy tylko faktyczne passed i failed
+                # Liczymy passed i failed
                 failed_count = sum(1 for r in records if r.get('dq_check', 1) == 0)
                 passed_count = sum(1 for r in records if r.get('dq_check', 1) == 1)
 
@@ -174,48 +177,98 @@ class CheckDqPanel:
                     messagebox.showerror("SQL Error", f"Error inserting DQ results for rule {rule_id}:\n{e}")
                     continue
 
-                # WRZUCANIE DO dq_field_results
+                # Wstawienie do dq_field_results i przygotowanie rekordów do CSV
                 for record in records:
-                    record_id = str(record.get('id', 'unknown'))  # id zawsze bierzemy jako identyfikator rekordu
+                    record_id = str(record.get('id', 'unknown'))
                     test_result = record.get('dq_check', 1)
                     message = "DQ check passed" if test_result == 1 else rule_error_message
 
-                    # --> ZMIANA: Bierzemy tylko drugą kolumnę SELECTa (pozycja 1)
-                    checked_field = list(record.keys())[1]
-                    field_value = record.get(checked_field, "")
+                    checked_field_name = list(record.keys())[1]
+                    field_value = record.get(checked_field_name, "")
 
                     try:
-                        cursor.execute("""
+                        cursor.execute(
+                            """
                             INSERT INTO dq_field_results
                             (rule_id, rule_version, record_id, field_name, field_value, test_result, error_message, target_table)
                             VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
-                        """, (
-                            rule_id,
-                            rule_version,
-                            record_id,
-                            checked_field,
-                            str(field_value) if field_value is not None else "",
-                            test_result,
-                            message,
-                            table
-                        ))
+                            """,
+                            (
+                                rule_id,
+                                rule_version,
+                                record_id,
+                                checked_field_name,
+                                str(field_value) if field_value is not None else "",
+                                test_result,
+                                message,
+                                table
+                            )
+                        )
                     except mysql.connector.Error as e:
                         messagebox.showerror(
                             "SQL Error",
                             f"Error inserting field result for rule {rule_id}, record {record_id}:\n{e}"
                         )
 
+                    # Dodajemy do listy rekordów do CSV
+                    record_for_csv = {
+                        'rule_id': rule_id,
+                        'record_id': record_id,
+                        'checked_field': checked_field_name,
+                        'field_value': field_value,
+                        'test_result': test_result,
+                        'error_message': message
+                    }
+                    all_records_for_csv.append(record_for_csv)
+
                 conn.commit()
                 rules_executed += 1
                 results_summary.append(f"Rule {rule_id}: Passed {passed_count}, Failed {failed_count}")
 
+            # Podsumowanie
             overall_status = "SUCCESS" if all("Passed" in r for r in results_summary) else "CHECK FAILED"
             messagebox.showinfo(
                 "DQ Check Summary",
-                f"Rules executed: {rules_executed}/{total_rules}\n\n" +
+                f"Rules executed: {rules_executed}/{total_rules}\n"
+                f"Total rows in CSV: {len(all_records_for_csv)}\n\n" +
                 "\n".join(results_summary) +
                 f"\n\nOverall Status: {overall_status}"
             )
+
+            # Tworzenie CSV dla wszystkich reguł
+
+            if all_records_for_csv:
+                csv_file = "all_dq_rules_result.csv"
+                fieldnames = ['rule_id', 'record_id', 'checked_field', 'field_value', 'test_result', 'error_message']
+
+                try:
+                    with open(csv_file, mode="w", newline="", encoding="utf-8") as f:
+                        writer = csv.DictWriter(f, fieldnames=fieldnames)
+                        writer.writeheader()
+                        for record in all_records_for_csv:
+                            writer.writerow(record)
+                    messagebox.showinfo("Export Complete",
+                                        f"All rules - {len(all_records_for_csv)} records exported to CSV.")
+                except Exception as e:
+                    messagebox.showerror("CSV Error", f"Error exporting CSV:\n{e}")
+
+            # if all_records_for_csv:
+            #     all_keys = set()
+            #     for rec in all_records_for_csv:
+            #         all_keys.update(rec.keys())
+            #     fieldnames = list(all_keys)
+            #
+            #     csv_file = f"all_dq_rules_result.csv"
+            #     try:
+            #         with open(csv_file, mode="w", newline="", encoding="utf-8") as f:
+            #             writer = csv.DictWriter(f, fieldnames=fieldnames)
+            #             writer.writeheader()
+            #             for record in all_records_for_csv:
+            #                 writer.writerow(record)
+            #         messagebox.showinfo("Export Complete",
+            #                             f"All rules - {len(all_records_for_csv)} records exported to CSV.")
+            #     except Exception as e:
+            #         messagebox.showerror("CSV Error", f"Error exporting CSV:\n{e}")
 
         finally:
             cursor.close()
@@ -305,141 +358,55 @@ class CheckDqPanel:
             messagebox.showinfo("DQ Result",
                                 f"Rule {rule_id} executed.\nPassed: {passed_count}, Failed: {failed_count}")
 
+            #CSV generate function
+            for record in records:
+                test_result = record.get('dq_check', 1)
+                record['error_message'] = "DQ check passed" if test_result == 1 else rule_error_message
+
+            # Tworzenie CSV
+            csv_file = f"dq_rule_{rule_id}_results.csv"
+            fieldnames = list(records[0].keys())  # już zawiera error_message
+            try:
+                with open(csv_file, mode="w", newline="", encoding="utf-8") as f:
+                    writer = csv.DictWriter(f, fieldnames=fieldnames)
+                    writer.writeheader()
+                    for record in records:
+                        writer.writerow(record)
+                messagebox.showinfo("Export Complete", f"Rule {rule_id} - {len(records)} records exported to CSV.")
+            except Exception as e:
+                messagebox.showerror("CSV Error", f"Error exporting rule {rule_id} to CSV:\n{e}")
+
+
         finally:
             cursor.close()
             conn.close()
 
-    # def run_selected_dq_rule(self, table, rule_id):
-    #     conn = mysql.connector.connect(**config)
-    #     cursor = conn.cursor(dictionary=True)
-    #
-    #     cursor.execute(
-    #         "SELECT sql_query, version FROM dq_rules WHERE id=%s AND status='ACTIVE'",
-    #         (rule_id,)
-    #     )
-    #     row = cursor.fetchone()
-    #     if not row:
-    #         messagebox.showerror("Error", f"Rule {rule_id} not found or inactive.")
-    #         cursor.close()
-    #         conn.close()
+    # def export_dq_results_to_csv(self, records, rule_id, rule_error_message="DQ check failed"):
+    #     if not records:
     #         return
     #
-    #     sql_query, rule_version = row
+    #     csv_file = f"dq_rule_{rule_id}_results.csv"
+    #     fieldnames = list(records[0].keys()) + ['test_result', 'error_message']
     #
     #     try:
-    #         cursor.execute(sql_query)
-    #         records = cursor.fetchall()
-    #     except mysql.connector.Error as e:
-    #         messagebox.showerror("SQL Error", f"Error executing rule {rule_id}:\n{e}")
-    #         cursor.close()
-    #         conn.close()
-    #         return
+    #         with open(csv_file, mode="w", newline="", encoding="utf-8") as f:
+    #             writer = csv.DictWriter(f, fieldnames=fieldnames)
+    #             writer.writeheader()
+    #             for record in records:
+    #                 record_copy = record.copy()
+    #                 test_result = record.get('dq_check', 1)
+    #                 record_copy['test_result'] = test_result
+    #                 # Użycie przekazanego error message
+    #                 record_copy['error_message'] = "DQ check passed" if test_result == 1 else rule_error_message
+    #                 writer.writerow(record_copy)
     #
-    #     timestamp = datetime.now()
-    #     failed_count = 0
-    #     passed_count = 0
-    #
-    #     # Wstawienie wyników do dq_field_results
-    #     for record in records:
-    #         record_id = record.get('id', '')  # id rekordu
-    #         test_result = record.get('dq_check', 1)  # 0 = fail, 1 = pass
-    #
-    #         if test_result == 0:
-    #             failed_count += 1
-    #         else:
-    #             passed_count += 1
-    #
-    #         error_message = '' if test_result == 1 else record.get('error_message', '')
-    #
-    #         checked_field = list(record.keys())[1]  # pozycja 1, bo 0 = id
-    #         field_value = record.get(checked_field, "")
-    #
-    #         try:
-    #             cursor.execute(
-    #                 """
-    #                 INSERT INTO dq_field_results
-    #                 (rule_id, rule_version, record_id, field_name, field_value, test_result, error_message, target_table)
-    #                 VALUES (%s, %s, %s, %s, %s, %s, %s)
-    #                 """,
-    #                 (
-    #                     rule_id,
-    #                     rule_version,
-    #                     str(record_id),
-    #                     checked_field,
-    #                     str(field_value) if field_value is not None else "",
-    #                     test_result,
-    #                     error_message,
-    #                     table
-    #                 )
-    #             )
-    #
-    #         except mysql.connector.Error as e:
-    #             messagebox.showerror(
-    #                 "SQL Error",
-    #                 f"Error inserting field result for rule {rule_id}, record {record_id}:\n{e}"
-    #             )
-    #
-    #     conn.commit()
-    #     cursor.close()
-    #     conn.close()
-    #
-    #     messagebox.showinfo("DQ Result", f"Rule {rule_id} executed.\nPassed: {passed_count}, Failed: {failed_count}")
+    #         messagebox.showinfo("Export Complete", f"Rule {rule_id} - {len(records)} records exported to CSV.")
+    #     except Exception as e:
+    #         messagebox.showerror("CSV Error", f"Error exporting rule {rule_id} to CSV:\n{e}")
 
     # def run_active_dq_rules_and_export_csv(self, output_dir="dq_errors_csv"):
     #     os.makedirs(output_dir, exist_ok=True)
-    #     conn = mysql.connector.connect(**config)
-    #     cursor = conn.cursor(dictionary=True)
-    #
-    #     try:
-    #         cursor.execute(
-    #             "SELECT id, version, target_table, sql_query, error_message FROM dq_rules WHERE status='ACTIVE'")
-    #         rules = cursor.fetchall()
-    #         if not rules:
-    #             messagebox.showinfo("Info", "No active rules found.")
-    #             return
-    #
-    #         for rule in rules:
-    #             rule_id = rule['id']
-    #             rule_version = rule['version']
-    #             table = rule['target_table']
-    #             sql_query = rule['sql_query']
-    #             rule_error_message = rule.get('error_message', 'DQ check failed')
-    #
-    #             try:
-    #                 cursor.execute(sql_query)
-    #                 records = cursor.fetchall()
-    #             except mysql.connector.Error as e:
-    #                 messagebox.showerror("SQL Error", f"Error executing rule {rule_id}:\n{e}")
-    #                 continue
-    #
-    #             failed_count = 0
-    #             passed_count = 0
-    #
-    #             # Wstawienie wyników do dq_field_results
-    #             for record in records:
-    #                 record_id = str(record.get('id', ''))
-    #                 for field_name, field_value in record.items():
-    #                     if field_name == 'dq_check':
-    #                         test_result = field_value
-    #                         if test_result == 0:
-    #                             message = rule_error_message
-    #                             failed_count += 1
-    #                         else:
-    #                             message = "DQ check passed"
-    #                             passed_count += 1
-    #                     else:
-    #                         continue
-    #
-    #                     try:
-    #                         cursor.execute("""
-    #                             INSERT INTO dq_field_results
-    #                             (rule_id, rule_version, record_id, field_name, field_value, test_result, error_message, timestamp, target_table)
-    #                             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-    #                         """, (rule_id, rule_version, record_id, field_name, str(field_value),
-    #                               test_result, message, datetime.now(), table))
-    #                     except mysql.connector.Error as e:
-    #                         messagebox.showerror("SQL Error",
-    #                                              f"Error inserting field result for rule {rule_id}, record {record_id}:\n{e}")
+
     #
     #             # Zapis CSV wszystkich rekordów z dodatkową kolumną komunikatów
     #             if records:
@@ -463,12 +430,4 @@ class CheckDqPanel:
     #
     #         conn.commit()
     #         messagebox.showinfo("DQ Check Complete", "All active DQ rules executed and field results exported.")
-    #
-    #     finally:
-    #         cursor.close()
-    #         conn.close()
-
-    import mysql.connector
-    from datetime import datetime
-    from tkinter import messagebox
 
