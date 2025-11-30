@@ -87,14 +87,19 @@ class CheckDqPanel:
         def update_rules(*args):
             table = self.selected_table.get()
             rules = self.get_active_rules_for_table(table)
-            if rules:
-                self.rule_var.set(rules[0])
-            else:
-                self.rule_var.set(0)
             menu = self.rule_dropdown["menu"]
             menu.delete(0, "end")
-            for r in rules:
-                menu.add_command(label=r, command=lambda value=r: self.rule_var.set(value))
+            if rules:
+                self.rule_var.set(rules[0])
+                for r in rules:
+                    menu.add_command(label=r, command=lambda value=r: self.rule_var.set(value))
+
+                else:
+                    self.rule_var.set(0)
+
+        update_rules()
+
+        self.selected_table.trace_add("write", lambda *args: update_rules())
 
         tk.Button(dialog, text="Run", command=lambda: self.run_dq_from_dialog(dialog)).pack(pady=10)
 
