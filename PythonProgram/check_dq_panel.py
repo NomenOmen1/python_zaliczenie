@@ -94,7 +94,7 @@ class CheckDqPanel:
                 for r in rules:
                     menu.add_command(label=r, command=lambda value=r: self.rule_var.set(value))
 
-                else:
+                if not rules:
                     self.rule_var.set(0)
 
         update_rules()
@@ -121,65 +121,106 @@ class CheckDqPanel:
         conn = mysql.connector.connect(**config)
         cursor = conn.cursor(dictionary=True)
 
-        cursor.execute(
-            "SELECT id, sql_query, version FROM dq_rules WHERE status='ACTIVE' AND target_table=%s",
-            (table,)
-        )
-        rules = cursor.fetchall()
-        if not rules:
-            messagebox.showinfo("Info", f"No active rules for table {table}.")
+        try:
+            # Pobranie aktywnych reguł
+            cursor.execute(
+                "SELECT id, sql_query, version, target_table, error_message FROM dq_rules WHERE status='ACTIVE' AND target_table=%s",
+                (table,)
+            )
+            rules = cursor.fetchall()
+
+            if not rules:
+                messagebox.showinfo("Info", f"No active rules for table {table}.")
+                return
+
+            total_rules = len(rules)  # --> ZMIANA: Liczymy ile reguł odpalamy
+            rules_executed = 0
+            results_summary = []
+
+            for rule in rules:
+                rule_id = rule['id']
+                sql_query = rule['sql_query']
+                rule_version = rule['version']
+                table = rule['target_table']
+                rule_error_message = rule.get('error_message') or "DQ check failed"
+
+                # Wykonanie zapytania SQL reguły
+                try:
+                    cursor.execute(sql_query)
+                    records = cursor.fetchall()
+                except mysql.connector.Error as e:
+                    messagebox.showerror("SQL Error", f"Error executing rule {rule_id}:\n{e}")
+                    continue
+
+                if not records:
+                    messagebox.showinfo("Info", f"Rule {rule_id} returned no records.")
+                    continue
+
+                # --> ZMIANA: Liczymy tylko faktyczne passed i failed
+                failed_count = sum(1 for r in records if r.get('dq_check', 1) == 0)
+                passed_count = sum(1 for r in records if r.get('dq_check', 1) == 1)
+
+                # Wstawienie do dq_results
+                try:
+                    cursor.execute(
+                        """
+                        INSERT INTO dq_results
+                        (rule_id, rule_version, failed_count, passed_count, timestamp)
+                        VALUES (%s, %s, %s, %s, %s)
+                        """,
+                        (rule_id, rule_version, failed_count, passed_count, datetime.now())
+                    )
+                except mysql.connector.Error as e:
+                    messagebox.showerror("SQL Error", f"Error inserting DQ results for rule {rule_id}:\n{e}")
+                    continue
+
+                # Przetwarzanie rekordów do dq_field_results
+                for record in records:
+                    record_id = str(record.get('id', 'unknown'))  # id zawsze bierzemy jako identyfikator rekordu
+                    test_result = record.get('dq_check', 1)
+                    message = "DQ check passed" if test_result == 1 else rule_error_message
+
+                    # --> ZMIANA: Bierzemy tylko drugą kolumnę SELECTa (pozycja 1)
+                    checked_field = list(record.keys())[1]  # pozycja 1, bo 0 = id
+                    field_value = record.get(checked_field, "")
+
+                    try:
+                        cursor.execute("""
+                            INSERT INTO dq_field_results
+                            (rule_id, rule_version, record_id, field_name, field_value, test_result, error_message, target_table)
+                            VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+                        """, (
+                            rule_id,
+                            rule_version,
+                            record_id,
+                            checked_field,
+                            str(field_value) if field_value is not None else "",
+                            test_result,
+                            message,
+                            table
+                        ))
+                    except mysql.connector.Error as e:
+                        messagebox.showerror(
+                            "SQL Error",
+                            f"Error inserting field result for rule {rule_id}, record {record_id}:\n{e}"
+                        )
+
+                conn.commit()
+                rules_executed += 1
+                results_summary.append(f"Rule {rule_id}: Passed {passed_count}, Failed {failed_count}")
+
+            # --> ZMIANA: Jeden zbiorczy messagebox podsumowujący wszystkie reguły
+            overall_status = "SUCCESS" if all("Passed" in r for r in results_summary) else "CHECK FAILED"
+            messagebox.showinfo(
+                "DQ Check Summary",
+                f"Rules executed: {rules_executed}/{total_rules}\n\n" +
+                "\n".join(results_summary) +
+                f"\n\nOverall Status: {overall_status}"
+            )
+
+        finally:
             cursor.close()
             conn.close()
-            return
-
-        results_summary = []
-        for rule in rules:
-            rule_id = rule['id']
-            sql_query = rule['sql_query']
-            rule_version = rule['version']
-
-            # Obsługa błędów SQL
-            try:
-                cursor.execute(sql_query)
-                failed_records = cursor.fetchall()
-            except mysql.connector.Error as e:
-                messagebox.showerror("SQL Error", f"Error executing rule {rule_id}:\n{e}")
-                continue  # przejdź do kolejnej reguły
-
-            failed_count = len(failed_records)
-
-            # Liczba wszystkich rekordów w tabeli
-            try:
-                cursor.execute(f"SELECT COUNT(*) as total FROM {table}")
-                total_count = cursor.fetchone()["total"]
-            except mysql.connector.Error as e:
-                messagebox.showerror("SQL Error", f"Error counting records in table {table}:\n{e}")
-                continue
-
-            passed_count = total_count - failed_count
-
-            sample_failed_records = json.dumps(failed_records[:5])
-            timestamp = datetime.now()
-
-            try:
-                cursor.execute(
-                    """
-                    INSERT INTO dq_results
-                    (rule_id, rule_version, failed_count, passed_count, sample_failed_records, timestamp)
-                    VALUES (%s, %s, %s, %s, %s, %s)
-                    """,
-                    (rule_id, rule_version, failed_count, passed_count, sample_failed_records, timestamp)
-                )
-            except mysql.connector.Error as e:
-                messagebox.showerror("SQL Error", f"Error inserting DQ results for rule {rule_id}:\n{e}")
-                continue
-
-            results_summary.append(f"Rule {rule_id}: Passed {passed_count}, Failed {failed_count}")
-
-        conn.commit()
-        cursor.close()
-        conn.close()
-        messagebox.showinfo("DQ Results", "\n".join(results_summary))
 
     def run_selected_dq_rule(self, table, rule_id):
         conn = mysql.connector.connect(**config)
@@ -197,7 +238,7 @@ class CheckDqPanel:
             conn.close()
             return
 
-        sql_query, rule_version = row  # <-- dokładnie taka wersja, jak w tabeli
+        sql_query, rule_version = row
 
         try:
             cursor.execute(sql_query)
@@ -214,7 +255,7 @@ class CheckDqPanel:
 
         # Wstawienie wyników do dq_field_results
         for record in records:
-            record_id = record.get('id', '')  # lub inna kolumna identyfikująca rekord
+            record_id = record.get('id', '')
             for field_name, field_value in record.items():
                 test_result = record.get('dq_check', 1)  # 0 = fail, 1 = pass
                 if test_result == 0:
@@ -237,48 +278,90 @@ class CheckDqPanel:
         conn.close()
         messagebox.showinfo("DQ Result", f"Rule {rule_id} executed.\nPassed: {passed_count}, Failed: {failed_count}")
 
-    def run_active_dq_rules_and_export_csv(self, output_dir="dq_errors_csv"):
-        os.makedirs(output_dir, exist_ok=True)
-        conn = mysql.connector.connect(**config)
-        cursor = conn.cursor(dictionary=True)
+    # def run_active_dq_rules_and_export_csv(self, output_dir="dq_errors_csv"):
+    #     os.makedirs(output_dir, exist_ok=True)
+    #     conn = mysql.connector.connect(**config)
+    #     cursor = conn.cursor(dictionary=True)
+    #
+    #     try:
+    #         cursor.execute(
+    #             "SELECT id, version, target_table, sql_query, error_message FROM dq_rules WHERE status='ACTIVE'")
+    #         rules = cursor.fetchall()
+    #         if not rules:
+    #             messagebox.showinfo("Info", "No active rules found.")
+    #             return
+    #
+    #         for rule in rules:
+    #             rule_id = rule['id']
+    #             rule_version = rule['version']
+    #             table = rule['target_table']
+    #             sql_query = rule['sql_query']
+    #             rule_error_message = rule.get('error_message', 'DQ check failed')
+    #
+    #             try:
+    #                 cursor.execute(sql_query)
+    #                 records = cursor.fetchall()
+    #             except mysql.connector.Error as e:
+    #                 messagebox.showerror("SQL Error", f"Error executing rule {rule_id}:\n{e}")
+    #                 continue
+    #
+    #             failed_count = 0
+    #             passed_count = 0
+    #
+    #             # Wstawienie wyników do dq_field_results
+    #             for record in records:
+    #                 record_id = str(record.get('id', ''))
+    #                 for field_name, field_value in record.items():
+    #                     if field_name == 'dq_check':
+    #                         test_result = field_value
+    #                         if test_result == 0:
+    #                             message = rule_error_message
+    #                             failed_count += 1
+    #                         else:
+    #                             message = "DQ check passed"
+    #                             passed_count += 1
+    #                     else:
+    #                         continue
+    #
+    #                     try:
+    #                         cursor.execute("""
+    #                             INSERT INTO dq_field_results
+    #                             (rule_id, rule_version, record_id, field_name, field_value, test_result, error_message, timestamp, target_table)
+    #                             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+    #                         """, (rule_id, rule_version, record_id, field_name, str(field_value),
+    #                               test_result, message, datetime.now(), table))
+    #                     except mysql.connector.Error as e:
+    #                         messagebox.showerror("SQL Error",
+    #                                              f"Error inserting field result for rule {rule_id}, record {record_id}:\n{e}")
+    #
+    #             # Zapis CSV wszystkich rekordów z dodatkową kolumną komunikatów
+    #             if records:
+    #                 csv_file = os.path.join(output_dir, f"rule_{rule_id}_field_results.csv")
+    #                 try:
+    #                     with open(csv_file, mode="w", newline="", encoding="utf-8") as f:
+    #                         fieldnames = list(records[0].keys()) + ['test_result', 'error_message']
+    #                         writer = csv.DictWriter(f, fieldnames=fieldnames)
+    #                         writer.writeheader()
+    #                         for record in records:
+    #                             test_result = record.get('dq_check', 1)
+    #                             record_copy = record.copy()
+    #                             record_copy['test_result'] = test_result
+    #                             record_copy[
+    #                                 'error_message'] = rule_error_message if test_result == 0 else "DQ check passed"
+    #                             writer.writerow(record_copy)
+    #                     messagebox.showinfo("Export Complete",
+    #                                         f"Rule {rule_id} - {len(records)} records exported to CSV and DB.")
+    #                 except Exception as e:
+    #                     messagebox.showerror("CSV Error", f"Error exporting rule {rule_id} to CSV:\n{e}")
+    #
+    #         conn.commit()
+    #         messagebox.showinfo("DQ Check Complete", "All active DQ rules executed and field results exported.")
+    #
+    #     finally:
+    #         cursor.close()
+    #         conn.close()
 
-        try:
-            cursor.execute("SELECT id, version, target_table, sql_query FROM dq_rules WHERE status='ACTIVE'")
-            rules = cursor.fetchall()
-            if not rules:
-                print("No active rules found.")
-                return
+    import mysql.connector
+    from datetime import datetime
+    from tkinter import messagebox
 
-            for rule in rules:
-                rule_id = rule['id']
-                rule_version = rule['version']
-                table = rule['target_table']
-                sql_query = rule['sql_query']
-
-                cursor.execute(sql_query)
-                records = cursor.fetchall()
-                failed_records = [r for r in records if r.get('dq_check') == 0]
-                passed_records = [r for r in records if r.get('dq_check') == 1]
-
-                failed_count = len(failed_records)
-                passed_count = len(passed_records)
-
-                cursor.execute("""
-                    INSERT INTO dq_results
-                    (rule_id, rule_version, failed_count, passed_count, sample_failed_records, timestamp)
-                    VALUES (%s, %s, %s, %s, %s, %s)
-                """, (rule_id, rule_version, failed_count, passed_count, json.dumps(failed_records[:5]), datetime.now()))
-
-                if failed_records:
-                    csv_file = os.path.join(output_dir, f"rule_{rule_id}_errors.csv")
-                    with open(csv_file, mode="w", newline="", encoding="utf-8") as f:
-                        writer = csv.DictWriter(f, fieldnames=failed_records[0].keys())
-                        writer.writeheader()
-                        writer.writerows(failed_records)
-                    print(f"Rule {rule_id} - {failed_count} failed records exported to {csv_file}")
-
-            conn.commit()
-            print("All active DQ rules executed and results exported.")
-        finally:
-            cursor.close()
-            conn.close()
