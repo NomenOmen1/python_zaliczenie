@@ -5,6 +5,7 @@ import time
 from csv_upload import load_csv_and_log
 from data_quality import DataQualityWindow
 from file_history import FileHistory
+from utils import place_window
 
 
 class DashboardWindow:
@@ -13,10 +14,13 @@ class DashboardWindow:
         self.username = username
         self.role = role
 
-        self.window_width = 400
-        self.window_height = 300
+        # self.window_width = 400
+        # self.window_height = 300
+        # self.root.geometry(f"{self.window_width}x{self.window_height}")
+        place_window(self.root, width=400, height=300)
+
         self.root.title("Panel główny")
-        self.root.geometry(f"{self.window_width}x{self.window_height}")
+
 
 
         # Pasek użytkownika

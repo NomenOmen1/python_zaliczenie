@@ -4,6 +4,7 @@ import mysql.connector
 from db_config import config
 import time
 from check_dq_panel import CheckDqPanel
+from utils import place_window
 
 class FileHistory():
     def __init__(self, root, username, role, dashboard_root, time_var):
@@ -14,7 +15,8 @@ class FileHistory():
         self.time_var = time_var
 
         self.root.title("File History")
-        self.root.geometry("900x800")
+        #self.root.geometry("900x800")
+        place_window(self.root, width=900, height=800)
 
         tk.Label(root, text=f"Logged in as: {username}", anchor="e").pack(fill="x", padx=10, pady=5)
 

@@ -2,12 +2,14 @@ import tkinter as tk
 from tkinter import messagebox
 from login_functions import login_user
 from dashboard_window import DashboardWindow
+from utils import place_window
 
 class LoginWindow:
     def __init__(self, root):
         self.root = root
         self.root.title("Login panel")
         self.root.geometry("400x300")
+        #place_window(self.root)
 
         tk.Label(root, text="Username:").pack(pady=(30,0))
         self.username_entry = tk.Entry(root)

@@ -44,7 +44,7 @@ def load_csv_and_log(csv_file, table_name, username):
         messagebox.showinfo("Info", f"CSV file has been uploaded and logged! Total rows: {row_count}")
 
     except Error as e:
-        log.append(f"Błąd MySQL: {e}")
+        log.append(f"MySQL Error: {e}")
         messagebox.showerror("Error", f"The following error occured: {e}")
 
     finally:

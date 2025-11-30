@@ -5,6 +5,7 @@ from db_config import config
 import time
 import json
 from check_dq_panel import CheckDqPanel
+from utils import place_window
 
 class DataQualityWindow:
     def __init__(self, root, username, role, dashboard_root, time_var):
@@ -15,7 +16,8 @@ class DataQualityWindow:
         self.time_var = time_var
 
         self.root.title("Data Quality Panel")
-        self.root.geometry("1600x800")
+        #self.root.geometry("1600x800")
+        place_window(self.root, width=1600, height=800)
 
         tk.Label(root, text=f"Logged in as: {username}", anchor="e").pack(fill="x", padx=10, pady=5)
 
@@ -53,7 +55,7 @@ class DataQualityWindow:
 
         self.tree = ttk.Treeview(
             self.tree_frame,
-            columns=("id", "status", "created_at", "activated_at", "version", "description", "rule_type", "target_table", "sql_query"),
+            columns=("id", "status", "created_at", "activated_at", "version", "description", "rule_type", "target_table", "error_message", "sql_query"),
             yscrollcommand=self.tree_scroll_y.set,
             xscrollcommand=self.tree_scroll_x.set,
             show="headings"
@@ -71,6 +73,7 @@ class DataQualityWindow:
             "description": 160,
             "rule_type": 30,
             "target_table": 30,
+            "error_message": 40,
             "sql_query": 40,
         }
 
@@ -135,7 +138,7 @@ class DataQualityWindow:
         try:
             conn = mysql.connector.connect(**config)
             cursor = conn.cursor()
-            cursor.execute("SELECT id, status, created_at, activated_at, version, description, rule_type, target_table, sql_query FROM dq_rules WHERE status = 'active'")
+            cursor.execute("SELECT id, status, created_at, activated_at, version, description, rule_type, target_table, error_message, sql_query FROM dq_rules WHERE status = 'active'")
             rows = cursor.fetchall()
 
             for row in rows:
@@ -174,6 +177,10 @@ class DataQualityWindow:
         type_entry = tk.Entry(win)
         type_entry.pack()
 
+        tk.Label(win, text="Error Message:").pack()
+        error_message_entry = tk.Entry(win, width=50)
+        error_message_entry.pack()
+
         ##------------ target
         tk.Label(win, text="Target Table:").pack()
         tables = self.get_tables()  # Dynamiczne pobranie tabel z DB
@@ -194,26 +201,38 @@ class DataQualityWindow:
             desc = desc_entry.get()
             rule_type = type_entry.get()
             sql_query = sql_entry.get("1.0", "end-1c")
-            target_table_name = target_table.get()
+            new_error_message = error_message_entry.get()  # <-- poprawione
 
+            target_table_name = target_table.get()
             if not target_table_name:
                 messagebox.showerror("Error", "Select a target table")
                 return
 
-            conn = mysql.connector.connect(**config)
-            cursor = conn.cursor()
-            cursor.execute(
-                "INSERT INTO dq_rules (description, rule_type, target_table, sql_query, version) "
-                "VALUES (%s, %s, %s, %s, %s)",
-                (desc, rule_type, target_table_name, sql_query, "1.0")
-            )
-            conn.commit()
-            cursor.close()
-            conn.close()
+            # Serializacja do JSON dla kolumny MySQL JSON
+            error_message_json = json.dumps(new_error_message)
 
-            self.tree.delete(*self.tree.get_children())  # odśwież drzewo
-            self.load_rules()
-            win.destroy()
+            try:
+                conn = mysql.connector.connect(**config)
+                cursor = conn.cursor()
+                cursor.execute(
+                    "INSERT INTO dq_rules (description, rule_type, target_table, error_message, sql_query, version) "
+                    "VALUES (%s, %s, %s, %s, %s, %s)",
+                    (desc, rule_type, target_table_name, error_message_json, sql_query, "1.0")
+                )
+                conn.commit()
+
+                # Odświeżenie drzewa
+                self.tree.delete(*self.tree.get_children())
+                self.load_rules()
+                win.destroy()
+
+            except mysql.connector.Error as e:
+                messagebox.showerror("DB Error", str(e))
+            finally:
+                if 'cursor' in locals():
+                    cursor.close()
+                if 'conn' in locals() and conn.is_connected():
+                    conn.close()
 
         tk.Button(win, text="Add new DQ Rule", command=submit).pack(pady=10)
 
@@ -231,7 +250,7 @@ class DataQualityWindow:
         try:
             # Pobierz aktywnego rula
             cursor.execute("""
-                SELECT id, status, version, description, rule_type, target_table, sql_query, created_at
+                SELECT id, status, version, description, rule_type, target_table, error_message, sql_query, created_at
                 FROM dq_rules
                 WHERE id=%s AND status='ACTIVE'
             """, (rule_id,))
@@ -241,7 +260,7 @@ class DataQualityWindow:
                 messagebox.showinfo("Info", "This rule is already inactive")
                 return
 
-            rid, status, version, desc, rule_type, target_table, sql_query, created_at = row
+            rid, status, version, desc, rule_type, target_table, error_message, sql_query, created_at = row
 
             # --- wersja do archiwizacji ---
             archived_version = version if version else "1.0"
@@ -250,7 +269,8 @@ class DataQualityWindow:
             import json
             rule_params_json = json.dumps({
                 "sql_query": sql_query,
-                "description": desc
+                "description": desc,
+                "error_message": error_message,
             })
 
             # --- Archiwizacja ---
@@ -347,51 +367,74 @@ class DataQualityWindow:
         sql_entry.insert("1.0", current_sql)
         sql_entry.pack()
 
+        params = json.loads(rule_params_json)
+        current_error_message = params.get("error_message", "DQ rule failed")
+
+        tk.Label(win, text="Error Message:").pack()
+        error_entry = tk.Entry(win, width=50)
+        error_entry.insert(0, str(current_error_message))  # <--- tu konwersja do string
+        error_entry.pack()
+
         def save_changes():
+            # Pobranie wartości z pól
             new_desc = desc_entry.get()
             new_type = type_entry.get()
             new_sql = sql_entry.get("1.0", "end-1c")
+            new_error_message = error_entry.get()
+            new_error_message_json = json.dumps(new_error_message)
 
-            conn = mysql.connector.connect(**config)
-            cursor = conn.cursor()
+            try:
+                conn = mysql.connector.connect(**config)
+                cursor = conn.cursor()
 
-            # Sprawdź czy rule jest aktywne
-            cursor.execute("SELECT COUNT(*) FROM dq_rules WHERE id=%s AND status='ACTIVE'", (rule_id,))
-            active_count = cursor.fetchone()[0]
+                # Sprawdzenie, czy reguła nie jest już aktywna
+                cursor.execute("""
+                    SELECT COUNT(*)
+                    FROM dq_rules
+                    WHERE id=%s AND status='ACTIVE'
+                """, (rule_id,))
+                active_count = cursor.fetchone()[0]
 
-            if active_count > 0:
-                messagebox.showerror("Error", f"Rule {rule_id} is already active and cannot be modified from archive.")
-                cursor.close()
-                conn.close()
-                return
+                if active_count > 0:
+                    messagebox.showerror("Error",
+                                         f"Rule {rule_id} is already active and cannot be modified from archive.")
+                    return
 
-            # Inkrementacja wersji
-            major, minor = archived_version.split(".")
-            minor = int(minor) + 1
-            new_version = f"{major}.{minor}"
+                # Inkrementacja wersji
+                major, minor = archived_version.split(".")
+                minor = int(minor) + 1
+                new_version = f"{major}.{minor}"
 
-            # Aktualizacja live rule
-            cursor.execute("""
-                UPDATE dq_rules
-                SET description=%s,
-                    rule_type=%s,
-                    sql_query=%s,
-                    status='ACTIVE',
-                    version=%s,
-                    activated_at=NOW()
-                WHERE id=%s
-            """, (new_desc, new_type, new_sql, new_version, rule_id))
+                # Aktualizacja live rule w dq_rules
+                cursor.execute("""
+                    UPDATE dq_rules
+                    SET description=%s,
+                        rule_type=%s,
+                        sql_query=%s,
+                        error_message=%s,
+                        status='ACTIVE',
+                        version=%s,
+                        activated_at=NOW()
+                    WHERE id=%s
+                """, (new_desc, new_type, new_sql, new_error_message, new_version, rule_id))
 
-            conn.commit()
-            cursor.close()
-            conn.close()
+                conn.commit()
+                messagebox.showinfo("Info", f"Rule {rule_id} has been updated successfully")
 
-            messagebox.showinfo("Info", "Rule has been updated")
+                # Odświeżenie drzewa z live rules
+                self.tree.delete(*self.tree.get_children())
+                self.load_rules()
 
-            self.tree.delete(*self.tree.get_children())
-            self.load_rules()
+                # Zamknięcie okna
+                win.destroy()
 
-            win.destroy()
+            except mysql.connector.Error as e:
+                messagebox.showerror("DB Error", str(e))
+            finally:
+                if 'cursor' in locals():
+                    cursor.close()
+                if 'conn' in locals() and conn.is_connected():
+                    conn.close()
 
         tk.Button(win, text="Save changes", command=save_changes).pack(pady=10)
 

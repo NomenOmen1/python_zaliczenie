@@ -2,6 +2,7 @@ from tkinter import messagebox
 import tkinter as tk
 from tkinter import ttk
 from login_functions import create_user, change_password, deactivate_user, get_all_users
+from utils import place_window
 
 class AdminWindow:
     def __init__(self, root, username, role, dashboard_root, time_var):
@@ -11,10 +12,11 @@ class AdminWindow:
         self.dashboard_root = dashboard_root
         self.time_var = time_var
 
-        self.window_width = 400
-        self.window_height = 300
+        # self.window_width = 400
+        # self.window_height = 300
         self.root.title("Panel Admina")
-        self.root.geometry(f"{self.window_width}x{self.window_height}")
+        place_window(self.root, width=400, height=300)
+        # self.root.geometry(f"{self.window_width}x{self.window_height}")
 
         tk.Label(root, text=f"Logged in as: {username}", anchor="e").pack(fill="x", padx=10, pady=10)
 
