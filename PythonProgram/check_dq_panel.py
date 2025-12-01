@@ -6,6 +6,9 @@ import json
 from datetime import datetime
 import csv
 from utils import place_window
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
+from dq_report import draw_chart, get_data_from_dq_results
 
 class CheckDqPanel:
     def __init__(self, root, username, role, data_quality_root, time_var):
@@ -33,6 +36,15 @@ class CheckDqPanel:
 
         for i in range(3):
             top_frame.grid_columnconfigure(i, weight=1)
+
+        #REPORT FRAME
+        kpi_frame = tk.Frame(self.root)
+        kpi_frame.pack(fill="both", expand=True)
+
+        data = get_data_from_dq_results()
+
+        draw_chart(kpi_frame, data)
+
 
     def go_back(self):
         self.root.destroy()
@@ -63,7 +75,7 @@ class CheckDqPanel:
     def open_dq_dialog(self):
         dialog = tk.Toplevel(self.root)
         dialog.title("Run DQ Rules")
-        dialog.geometry("400x300")
+        dialog.geometry("400x350")
         # POTESTUJ TO BO FAJNIE GDYBY DZIAŁAŁO ! place_window(self.root, width=400, height=300)
 
         # Dropdown tabel
@@ -84,6 +96,8 @@ class CheckDqPanel:
         self.rule_var = tk.IntVar()
         self.rule_dropdown = tk.OptionMenu(dialog, self.rule_var, [])
         self.rule_dropdown.pack(pady=10)
+
+        tk.Button(dialog, text="BACK", command=dialog.destroy).pack(side="bottom", anchor="sw", padx=10, pady=10)
 
         def update_rules(*args):
             table = self.selected_table.get()
