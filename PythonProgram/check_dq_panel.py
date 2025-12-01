@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import messagebox, ttk
+from tkinter import messagebox, ttk, Scale, HORIZONTAL
 import mysql.connector
 from db_config import config
 import json
@@ -20,7 +20,7 @@ class CheckDqPanel:
 
         self.root.title("DQ Panel")
         #self.root.geometry("800x400")
-        place_window(self.root, width=800, height=400)
+        place_window(self.root, width=800, height=450)
 
         tk.Label(self.root, text=f"Logged in as: {self.username}", anchor="e").pack(fill="x", padx=10, pady=5)
         self.clock_label = tk.Label(self.root, textvariable=self.time_var, font=("Helvetica", 10))
@@ -41,9 +41,14 @@ class CheckDqPanel:
         kpi_frame = tk.Frame(self.root)
         kpi_frame.pack(fill="both", expand=True)
 
+        #chart_container = tk.Frame(kpi_frame)
+        #chart_container.pack(fill="both", expand=True)
+
         data = get_data_from_dq_results()
 
         draw_chart(kpi_frame, data)
+        scale = Scale(kpi_frame, from_=0, to=100, orient=HORIZONTAL, label="SUWAK111")
+        scale.pack(fill="x", padx=10, pady=5)
 
 
     def go_back(self):
