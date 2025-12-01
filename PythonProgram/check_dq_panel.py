@@ -5,7 +5,6 @@ from db_config import config
 import json
 from datetime import datetime
 import csv
-import os
 from utils import place_window
 
 class CheckDqPanel:
@@ -77,10 +76,11 @@ class CheckDqPanel:
         # Wybór typu uruchomienia
         tk.Label(dialog, text="Choose run type:").pack(pady=10)
         self.run_type = tk.StringVar(value="single")
-        tk.Radiobutton(dialog, text="Single Rule", variable=self.run_type, value="single").pack()
-        tk.Radiobutton(dialog, text="All Rules", variable=self.run_type, value="all").pack()
+        tk.Radiobutton(dialog, text="Single Rule", variable=self.run_type, value="single", command=self.on_run_type_change).pack()
+        tk.Radiobutton(dialog, text="All Rules", variable=self.run_type, value="all", command=self.on_run_type_change).pack()
 
         # Dropdown dla pojedynczej reguły
+        tk.Label(dialog, text="Choose single rule").pack(pady=(15,0))
         self.rule_var = tk.IntVar()
         self.rule_dropdown = tk.OptionMenu(dialog, self.rule_var, [])
         self.rule_dropdown.pack(pady=10)
@@ -252,24 +252,6 @@ class CheckDqPanel:
                 except Exception as e:
                     messagebox.showerror("CSV Error", f"Error exporting CSV:\n{e}")
 
-            # if all_records_for_csv:
-            #     all_keys = set()
-            #     for rec in all_records_for_csv:
-            #         all_keys.update(rec.keys())
-            #     fieldnames = list(all_keys)
-            #
-            #     csv_file = f"all_dq_rules_result.csv"
-            #     try:
-            #         with open(csv_file, mode="w", newline="", encoding="utf-8") as f:
-            #             writer = csv.DictWriter(f, fieldnames=fieldnames)
-            #             writer.writeheader()
-            #             for record in all_records_for_csv:
-            #                 writer.writerow(record)
-            #         messagebox.showinfo("Export Complete",
-            #                             f"All rules - {len(all_records_for_csv)} records exported to CSV.")
-            #     except Exception as e:
-            #         messagebox.showerror("CSV Error", f"Error exporting CSV:\n{e}")
-
         finally:
             cursor.close()
             conn.close()
@@ -376,58 +358,15 @@ class CheckDqPanel:
             except Exception as e:
                 messagebox.showerror("CSV Error", f"Error exporting rule {rule_id} to CSV:\n{e}")
 
-
         finally:
             cursor.close()
             conn.close()
 
-    # def export_dq_results_to_csv(self, records, rule_id, rule_error_message="DQ check failed"):
-    #     if not records:
-    #         return
-    #
-    #     csv_file = f"dq_rule_{rule_id}_results.csv"
-    #     fieldnames = list(records[0].keys()) + ['test_result', 'error_message']
-    #
-    #     try:
-    #         with open(csv_file, mode="w", newline="", encoding="utf-8") as f:
-    #             writer = csv.DictWriter(f, fieldnames=fieldnames)
-    #             writer.writeheader()
-    #             for record in records:
-    #                 record_copy = record.copy()
-    #                 test_result = record.get('dq_check', 1)
-    #                 record_copy['test_result'] = test_result
-    #                 # Użycie przekazanego error message
-    #                 record_copy['error_message'] = "DQ check passed" if test_result == 1 else rule_error_message
-    #                 writer.writerow(record_copy)
-    #
-    #         messagebox.showinfo("Export Complete", f"Rule {rule_id} - {len(records)} records exported to CSV.")
-    #     except Exception as e:
-    #         messagebox.showerror("CSV Error", f"Error exporting rule {rule_id} to CSV:\n{e}")
-
-    # def run_active_dq_rules_and_export_csv(self, output_dir="dq_errors_csv"):
-    #     os.makedirs(output_dir, exist_ok=True)
-
-    #
-    #             # Zapis CSV wszystkich rekordów z dodatkową kolumną komunikatów
-    #             if records:
-    #                 csv_file = os.path.join(output_dir, f"rule_{rule_id}_field_results.csv")
-    #                 try:
-    #                     with open(csv_file, mode="w", newline="", encoding="utf-8") as f:
-    #                         fieldnames = list(records[0].keys()) + ['test_result', 'error_message']
-    #                         writer = csv.DictWriter(f, fieldnames=fieldnames)
-    #                         writer.writeheader()
-    #                         for record in records:
-    #                             test_result = record.get('dq_check', 1)
-    #                             record_copy = record.copy()
-    #                             record_copy['test_result'] = test_result
-    #                             record_copy[
-    #                                 'error_message'] = rule_error_message if test_result == 0 else "DQ check passed"
-    #                             writer.writerow(record_copy)
-    #                     messagebox.showinfo("Export Complete",
-    #                                         f"Rule {rule_id} - {len(records)} records exported to CSV and DB.")
-    #                 except Exception as e:
-    #                     messagebox.showerror("CSV Error", f"Error exporting rule {rule_id} to CSV:\n{e}")
-    #
-    #         conn.commit()
-    #         messagebox.showinfo("DQ Check Complete", "All active DQ rules executed and field results exported.")
-
+    def on_run_type_change(self):
+        if self.run_type.get() == "all":
+            #Dropdown locked dla all rules
+            self.rule_dropdown.configure(state="disabled")
+            #messagebox.showinfo("Info", "Dropdown is disabled in ALL RULES mode.")
+        else:
+            #Dropdown unlock dla single
+            self.rule_dropdown.configure(state="normal")
