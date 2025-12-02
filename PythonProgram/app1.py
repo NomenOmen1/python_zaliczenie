@@ -2,19 +2,15 @@
 # 1. wgrywanie plików csv do bazy danych
 # 2. odpalam data quality rules które sprawdzają dane znajdujace sie w bazie danych
 # 3. zapisuje wyniki testow (KPI)
-# 4.prosty interfejs
+# 4. prosty interfejs
 
+# 5. DODAJ OPCJĘ LOGOWANIA SIĘ
 
 import pandas as pd
 import mysql.connector
 from mysql.connector import Error
-
-config = {
-    'host': 'localhost',
-    'user': 'root',
-    'password': '1234',
-    'database': 'data_quality_db'
-}
+import configparser
+from db_config import config
 
 def load_csv_to_db(csv_file, table_name):
     try:
@@ -23,7 +19,7 @@ def load_csv_to_db(csv_file, table_name):
 
         df.columns = [col.strip().replace(';','') for col in df.columns]
 
-        df = df.applymap(lambda x: str(x).replace(';','') if isinstance(x, str) else x)
+        df = df.map(lambda x: str(x).replace(';','') if isinstance(x, str) else x)
 
         print(df)
         print("Kolumny:", df.columns)
