@@ -7,6 +7,7 @@ from db_config import config
 import json
 from datetime import datetime
 import csv
+import os
 from utils import place_window
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
@@ -19,6 +20,7 @@ class CheckDqPanel:
         self.role = role
         self.data_quality_root = data_quality_root
         self.time_var = time_var
+        self.rules_dict = {}
 
         self.root.title("DQ Panel")
         #self.root.geometry("800x400")
@@ -112,22 +114,51 @@ class CheckDqPanel:
 
         def update_rules(*args):
             table = self.selected_table.get()
-            rules = self.get_active_rules_for_table(table)
+            rules = self.get_active_rules_for_table(table)  # [(id, description), ...]
             menu = self.rule_dropdown["menu"]
             menu.delete(0, "end")
-            if rules:
-                self.rule_var.set(rules[0])
-                for r in rules:
-                    menu.add_command(label=r, command=lambda value=r: self.rule_var.set(value))
+            self.rules_dict.clear()
 
-                if not rules:
-                    self.rule_var.set(0)
+            if rules:
+                first_id, first_desc = rules[0]
+                self.rule_var.set(first_id)
+
+                for rule_id, description in rules:
+                    self.rules_dict[rule_id] = description
+                    menu.add_command(
+                        label=f"{rule_id} - {description}",
+                        command=lambda rid=rule_id: self.rule_var.set(rid)
+                    )
+            else:
+                self.rule_var.set(0)
+                menu.add_command(label="No active rules", command=lambda: self.rule_var.set(0))
 
         update_rules()
-
         self.selected_table.trace_add("write", lambda *args: update_rules())
 
         tk.Button(dialog, text="Run", command=lambda: self.run_dq_from_dialog(dialog)).pack(pady=10)
+
+
+        # def update_rules(*args):
+        #     table = self.selected_table.get()
+        #     rules = self.get_active_rules_for_table(table)
+        #     menu = self.rule_dropdown["menu"]
+        #     menu.delete(0, "end")
+        #     self.rules_dict.clear()
+        #
+        #     if rules:
+        #         self.rule_var.set(rules[0])
+        #         for r in rules:
+        #             menu.add_command(label=r, command=lambda value=r: self.rule_var.set(value))
+        #
+        #         if not rules:
+        #             self.rule_var.set(0)
+        #
+        # update_rules()
+        #
+        # self.selected_table.trace_add("write", lambda *args: update_rules())
+        #
+        # tk.Button(dialog, text="Run", command=lambda: self.run_dq_from_dialog(dialog)).pack(pady=10)
 
     def run_dq_from_dialog(self, dialog):
         table = self.selected_table.get()
@@ -265,6 +296,7 @@ class CheckDqPanel:
             if all_records_for_csv:
                 csv_file = "all_dq_rules_result.csv"
                 fieldnames = ['rule_id', 'record_id', 'checked_field', 'field_value', 'test_result', 'error_message']
+                folder_path = os.path.dirname(csv_file)
 
                 try:
                     with open(csv_file, mode="w", newline="", encoding="utf-8") as f:
@@ -274,6 +306,8 @@ class CheckDqPanel:
                             writer.writerow(record)
                     messagebox.showinfo("Export Complete",
                                         f"All rules - {len(all_records_for_csv)} records exported to CSV.")
+                    os.startfile(folder_path)
+
                 except Exception as e:
                     messagebox.showerror("CSV Error", f"Error exporting CSV:\n{e}")
 
@@ -372,6 +406,7 @@ class CheckDqPanel:
 
             # Tworzenie CSV
             csv_file = f"dq_rule_{rule_id}_results.csv"
+            folder_path = os.path.dirname(csv_file)
             fieldnames = list(records[0].keys())  # już zawiera error_message
             try:
                 with open(csv_file, mode="w", newline="", encoding="utf-8") as f:
@@ -382,6 +417,8 @@ class CheckDqPanel:
                 messagebox.showinfo("Export Complete", f"Rule {rule_id} - {len(records)} records exported to CSV.")
             except Exception as e:
                 messagebox.showerror("CSV Error", f"Error exporting rule {rule_id} to CSV:\n{e}")
+
+            os.startfile(folder_path)
 
         finally:
             cursor.close()
