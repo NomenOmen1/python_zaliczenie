@@ -44,6 +44,7 @@ class AdminWindow:
 
         # POWRÓT
         tk.Button(root, text="BACK", command=self.go_back).pack(side="bottom", anchor="sw", padx=10, pady=15)
+        self.root.protocol("WM_DELETE_WINDOW", self.go_back)  # wciśnięcie X w prawym górnym rogu działa jak BACK
 
     def go_back(self):
         self.root.destroy()               # zamykanie panelu admina

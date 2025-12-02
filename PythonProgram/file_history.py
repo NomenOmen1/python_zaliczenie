@@ -25,6 +25,7 @@ class FileHistory():
         self.clock_label.pack(side="bottom", anchor="se", padx=10, pady=5)
 
         tk.Button(root, text="BACK", command=self.go_back).pack(side="bottom", anchor="sw", padx=10, pady=5)
+        self.root.protocol("WM_DELETE_WINDOW", self.go_back)  # wciśnięcie X w prawym górnym rogu działa jak BACK
 
         # TREEVIEW FILE HISTORY
         tk.Label(root, text="File Upload History", font=("Helvetica", 12, "bold")).pack(pady=(10, 0))
@@ -87,5 +88,10 @@ class FileHistory():
                 cursor.close()
             if 'conn' in locals() and conn.is_connected():
                 conn.close()
+
+    def on_close():
+        screen2.withdraw()
+        screen.update()
+        screen.deiconify()
 
 

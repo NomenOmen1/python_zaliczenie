@@ -59,7 +59,10 @@ class DashboardWindow:
         bottom_frame.pack(side = "bottom", fill="x")
 
         # EXIT pozycja
-        tk.Button(bottom_frame, text="EXIT", command=self.exit_programm).pack(side="left", padx=10, pady=5)
+        tk.Button(bottom_frame, text="EXIT", command=self.exit_program).pack(side="left", padx=10, pady=5)
+        # LOGOUT
+        tk.Button(bottom_frame, text="LOGOUT", command=self.logout_user).pack(side="left", padx=15, pady=5)
+        self.root.protocol("WM_DELETE_WINDOW", self.logout_user)
         #ZEGAR pozycja
         self.time_var = tk.StringVar()
         # self.clock_frame = tk.Frame(root)
@@ -82,7 +85,7 @@ class DashboardWindow:
         admin_window = tk.Toplevel()
         admin_app = AdminWindow(admin_window, self.username, self.role, self.root, self.time_var)
 
-    def exit_programm(self):
+    def exit_program(self):
         self.root.destroy()
 
     def load_csv_and_log(self):
@@ -103,17 +106,6 @@ class DashboardWindow:
         else:
             messagebox.showinfo("CSV Upload Failed", "An error occurred and no data was added to the database.")
 
-    # def load_csv_and_log(self):
-    #     file_path = filedialog.askopenfilename(
-    #         title="Choose CSV file",
-    #         filetypes=(("CSV Files", "*.csv"), ("All Files", "*.*"))
-    #     )
-    #     if file_path:
-    #         log = load_csv_and_log("data_input.csv", "customers", self.username)
-    #         messagebox.showinfo("CSV Uploaded", log)
-    #     if not file_path:
-    #         messagebox.showerror("Error", "No file was selected")
-
     def open_dq_panel(self):
         self.root.withdraw()
         dq_panel = tk.Toplevel()
@@ -123,6 +115,15 @@ class DashboardWindow:
         self.root.withdraw()
         file_history_window= tk.Toplevel()
         file_history_app = FileHistory(file_history_window, self.username, self.role, self.root, self.time_var)
+
+    def logout_user(self):
+        for widget in self.root.winfo_children():
+            widget.destroy()
+
+        messagebox.showinfo("Logout", f"Logged out successfully,\nsee you later, {self.username}!")
+
+        from login_window import LoginWindow
+        LoginWindow(self.root)
 
 
 

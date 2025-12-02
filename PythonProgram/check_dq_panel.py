@@ -30,6 +30,7 @@ class CheckDqPanel:
         self.clock_label = tk.Label(self.root, textvariable=self.time_var, font=("Helvetica", 10))
         self.clock_label.pack(side="bottom", anchor="se", padx=10, pady=5)
         tk.Button(self.root, text="BACK", command=self.go_back).pack(side="bottom", anchor="sw", padx=10, pady=5)
+        self.root.protocol("WM_DELETE_WINDOW", self.go_back)   #wciśnięcie X w prawym górnym rogu działa jak BACK
 
         top_frame = tk.Frame(self.root)
         top_frame.pack(padx=10, pady=10, fill="x")
@@ -137,28 +138,6 @@ class CheckDqPanel:
         self.selected_table.trace_add("write", lambda *args: update_rules())
 
         tk.Button(dialog, text="Run", command=lambda: self.run_dq_from_dialog(dialog)).pack(pady=10)
-
-
-        # def update_rules(*args):
-        #     table = self.selected_table.get()
-        #     rules = self.get_active_rules_for_table(table)
-        #     menu = self.rule_dropdown["menu"]
-        #     menu.delete(0, "end")
-        #     self.rules_dict.clear()
-        #
-        #     if rules:
-        #         self.rule_var.set(rules[0])
-        #         for r in rules:
-        #             menu.add_command(label=r, command=lambda value=r: self.rule_var.set(value))
-        #
-        #         if not rules:
-        #             self.rule_var.set(0)
-        #
-        # update_rules()
-        #
-        # self.selected_table.trace_add("write", lambda *args: update_rules())
-        #
-        # tk.Button(dialog, text="Run", command=lambda: self.run_dq_from_dialog(dialog)).pack(pady=10)
 
     def run_dq_from_dialog(self, dialog):
         table = self.selected_table.get()

@@ -21,6 +21,12 @@ class LoginWindow:
 
         tk.Button(root, text="Login", command=self.validate_login).pack(pady=10)
 
+        bottom_frame = tk.Frame(root)
+        bottom_frame.pack(side="bottom", fill="x")
+
+        # EXIT pozycja
+        tk.Button(bottom_frame, text="EXIT", command=self.exit_program_login).pack(side="left", padx=10, pady=5)
+
     def validate_login(self):
         user = self.username_entry.get()
         pwd = self.password_entry.get()
@@ -39,3 +45,6 @@ class LoginWindow:
 
         # Przejście do głównego okna
         DashboardWindow(self.root, logged_user, role)
+
+    def exit_program_login(self):
+        self.root.destroy()
