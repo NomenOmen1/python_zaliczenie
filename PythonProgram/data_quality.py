@@ -6,6 +6,7 @@ import time
 import json
 from check_dq_panel import CheckDqPanel
 from utils import place_window
+import re
 
 class DataQualityWindow:
     def __init__(self, root, username, role, dashboard_root, time_var):
@@ -163,7 +164,7 @@ class DataQualityWindow:
             cursor.close()
             conn.close()
 
-        excluded = {"dq_rules", "dq_rules_history", "data_load_log", "dq_results", "dq_field_results"}  #TABLICE DO EXCLUDE
+        excluded = {"dq_rules", "dq_rules_history", "data_load_log", "dq_results", "dq_field_results", "users"}  #TABLICE DO EXCLUDE
         return [t for t in all_tables if t not in excluded]
     def add_rule_window(self):
         win = tk.Toplevel(self.root)
@@ -210,6 +211,12 @@ class DataQualityWindow:
 
             # Serializacja do JSON dla kolumny MySQL JSON
             error_message_json = json.dumps(new_error_message)
+
+            try:
+                self.forbidden_commands(sql_query)
+            except ValueError as ve:
+                messagebox.showerror("Invalid SQL Query", str(ve))
+                return
 
             try:
                 conn = mysql.connector.connect(**config)
@@ -384,6 +391,12 @@ class DataQualityWindow:
             new_error_message_json = json.dumps(new_error_message)
 
             try:
+                self.forbidden_commands(new_sql)
+            except ValueError as ve:
+                messagebox.showerror("Error", str(ve))
+                return
+
+            try:
                 conn = mysql.connector.connect(**config)
                 cursor = conn.cursor()
 
@@ -479,6 +492,20 @@ class DataQualityWindow:
         tree.heading(col, command=lambda: self.treeview_sort_column(tree, col, not reverse))
 
 
+    ### WALIDACJA SQL QUERY czyli dodanie zakazanych komend
+
+    def forbidden_commands(self, rule_text: str):
+
+        forbidden_keywords = ['DROP', 'DELETE', 'ALTER', 'TRUNCATE', 'INSERT', 'UPDATE', 'CREATE', 'RENAME']
+        allowed_characters_regex = r'^[A-Za-z0-9_ ,\.\(\)]+$'
+
+        rule_upper = rule_text.upper()
+        for keyword in forbidden_keywords:
+            if keyword in rule_upper:
+                raise ValueError(f"Forbidden keyword: {keyword}, you MUST NOT use this!")
+        if not re.match(allowed_characters_regex, rule_text):
+            raise ValueError(f"Forbidden keyword: {rule_text}, you MUST NOT use this!")
+        return True
 
 
 

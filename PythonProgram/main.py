@@ -3,7 +3,7 @@
 #Kolejny krok: stwórz panel do ładowania CSV (najlepiej wybierając plik z browse)
 
 # ZADANIE NA WTOREK:
-# DODA DROPDOWN Z WYBOREM TABELI DLA KTÓREJ MA BYĆ pokazany WYKRES
+# DODAJ DROPDOWN Z WYBOREM TABELI DLA KTÓREJ MA BYĆ pokazany WYKRES
 
 
 import tkinter as tk

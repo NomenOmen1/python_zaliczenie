@@ -8,6 +8,7 @@ from file_history import FileHistory
 from utils import place_window
 
 
+
 class DashboardWindow:
     def __init__(self, root, username, role):
         self.root = root
@@ -89,11 +90,29 @@ class DashboardWindow:
             title="Choose CSV file",
             filetypes=(("CSV Files", "*.csv"), ("All Files", "*.*"))
         )
-        if file_path:
-            log = load_csv_and_log("data_input.csv", "customers", self.username)
-            messagebox.showinfo("CSV Uploaded", log)
+
         if not file_path:
             messagebox.showerror("Error", "No file was selected")
+            return
+
+        # przekazanie wybranego pliku i nazwy tabeli
+        log, success = load_csv_and_log(file_path, "customers", self.username)
+
+        if success:
+            messagebox.showinfo("CSV Uploaded", log)
+        else:
+            messagebox.showinfo("CSV Upload Failed", "An error occurred and no data was added to the database.")
+
+    # def load_csv_and_log(self):
+    #     file_path = filedialog.askopenfilename(
+    #         title="Choose CSV file",
+    #         filetypes=(("CSV Files", "*.csv"), ("All Files", "*.*"))
+    #     )
+    #     if file_path:
+    #         log = load_csv_and_log("data_input.csv", "customers", self.username)
+    #         messagebox.showinfo("CSV Uploaded", log)
+    #     if not file_path:
+    #         messagebox.showerror("Error", "No file was selected")
 
     def open_dq_panel(self):
         self.root.withdraw()

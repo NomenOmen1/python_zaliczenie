@@ -65,7 +65,7 @@ class CheckDqPanel:
             cursor.close()
             conn.close()
 
-        excluded = {"dq_rules", "dq_rules_history", "data_load_log", "dq_results", "dq_field_results"}
+        excluded = {"dq_rules", "dq_rules_history", "data_load_log", "dq_results", "dq_field_results", "users"}
         return [t for t in all_tables if t not in excluded]
 
     def get_active_rules_for_table(self, table_name):
