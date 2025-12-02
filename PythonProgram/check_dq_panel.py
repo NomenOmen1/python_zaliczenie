@@ -1,6 +1,8 @@
 import tkinter as tk
 from tkinter import messagebox, ttk, Scale, HORIZONTAL
 import mysql.connector
+from numpy.ma.extras import row_stack
+
 from db_config import config
 import json
 from datetime import datetime
@@ -71,11 +73,15 @@ class CheckDqPanel:
     def get_active_rules_for_table(self, table_name):
         conn = mysql.connector.connect(**config)
         cursor = conn.cursor()
-        cursor.execute("SELECT id FROM dq_rules WHERE status='ACTIVE' AND target_table=%s", (table_name,))
-        rules = [r[0] for r in cursor.fetchall()]  # tylko id
+        cursor.execute("SELECT id, description FROM dq_rules WHERE status='ACTIVE' AND target_table=%s", (table_name,))
+        #rules = [r[0] for r in cursor.fetchall()]  # tylko id
+        rows = cursor.fetchall()
         cursor.close()
         conn.close()
-        return rules
+        if rows:
+            return rows
+        else:
+            return
 
     def open_dq_dialog(self):
         dialog = tk.Toplevel(self.root)
