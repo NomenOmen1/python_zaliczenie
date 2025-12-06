@@ -24,7 +24,7 @@ class CheckDqPanel:
 
         self.root.title("DQ Panel")
         #self.root.geometry("800x400")
-        place_window(self.root, width=800, height=450)
+        place_window(self.root, width=800, height=500)
 
         tk.Label(self.root, text=f"Logged in as: {self.username}", anchor="e").pack(fill="x", padx=10, pady=5)
         self.clock_label = tk.Label(self.root, textvariable=self.time_var, font=("Helvetica", 10))
@@ -36,8 +36,8 @@ class CheckDqPanel:
         top_frame.pack(padx=10, pady=10, fill="x")
 
         tk.Button(top_frame, text="Run DQ Check", command=self.open_dq_dialog).grid(row=0, column=0, sticky="nsew")
-        tk.Button(top_frame, text="Choose DQ Rule", command=self.get_tables_to_dq_check).grid(row=0, column=1, sticky="nsew")
-        tk.Button(top_frame, text="Deactivate User").grid(row=0, column=2, sticky="nsew")
+        #tk.Button(top_frame, text="Choose DQ Rule", command=self.get_tables_to_dq_check).grid(row=0, column=1, sticky="nsew")
+        #tk.Button(top_frame, text="Deactivate User").grid(row=0, column=2, sticky="nsew")
 
         for i in range(3):
             top_frame.grid_columnconfigure(i, weight=1)
