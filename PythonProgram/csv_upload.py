@@ -84,4 +84,4 @@ def load_csv_and_log(csv_file, table_name, username):
             conn.close()
             log.append("Connection with DB closed.")
 
-    return "\n".join(log), success  # <-- zwracamy log i flagę sukcesu
+    return "\n".join(log), success  # <-- log i flaga sukcesu

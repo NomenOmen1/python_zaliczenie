@@ -52,8 +52,8 @@ class CheckDqPanel:
         data = get_data_from_dq_results()
 
         draw_chart(kpi_frame, data)
-        scale = Scale(kpi_frame, from_=0, to=100, orient=HORIZONTAL, label="SUWAK111")
-        scale.pack(fill="x", padx=10, pady=5)
+        #scale = Scale(kpi_frame, from_=0, to=100, orient=HORIZONTAL, label="SUWAK111")
+        #scale.pack(fill="x", padx=10, pady=5)
 
 
     def go_back(self):
@@ -280,7 +280,7 @@ class CheckDqPanel:
                 #folder_path = os.path.dirname(csv_file)
 
                 try:
-                    with open(csv_file, mode="w", newline="", encoding="utf-8") as f:
+                    with open(csv_file, mode="w", newline="", encoding="utf-8-sig") as f:
                         writer = csv.DictWriter(f, fieldnames=fieldnames)
                         writer.writeheader()
                         for record in all_records_for_csv:
@@ -394,7 +394,7 @@ class CheckDqPanel:
 
             fieldnames = list(records[0].keys())  # już zawiera error_message
             try:
-                with open(csv_file, mode="w", newline="", encoding="utf-8") as f:
+                with open(csv_file, mode="w", newline="", encoding="utf-8-sig") as f:
                     writer = csv.DictWriter(f, fieldnames=fieldnames)
                     writer.writeheader()
                     for record in records:
