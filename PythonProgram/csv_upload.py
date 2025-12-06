@@ -16,10 +16,13 @@ def load_csv_and_log(csv_file, table_name, username):
     log = []
     success = True
     error_shown = False
-    filename_only = os.path.basename(csv_file)
+
+    folder = "excels"
+    full_path = os.path.join(folder, csv_file)
+    filename_only = os.path.basename(full_path)
 
     try:
-        df = pd.read_csv(filename_only, sep=None, engine='python', encoding='cp1250')
+        df = pd.read_csv(full_path, sep=None, engine='python', encoding='cp1250')
         row_count = len(df)
         log.append(f"Loaded {row_count} rows from {filename_only}.")
 

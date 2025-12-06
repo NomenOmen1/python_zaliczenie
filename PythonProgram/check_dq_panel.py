@@ -24,7 +24,7 @@ class CheckDqPanel:
 
         self.root.title("DQ Panel")
         #self.root.geometry("800x400")
-        place_window(self.root, width=800, height=450)
+        place_window(self.root, width=800, height=500)
 
         tk.Label(self.root, text=f"Logged in as: {self.username}", anchor="e").pack(fill="x", padx=10, pady=5)
         self.clock_label = tk.Label(self.root, textvariable=self.time_var, font=("Helvetica", 10))
@@ -36,8 +36,8 @@ class CheckDqPanel:
         top_frame.pack(padx=10, pady=10, fill="x")
 
         tk.Button(top_frame, text="Run DQ Check", command=self.open_dq_dialog).grid(row=0, column=0, sticky="nsew")
-        tk.Button(top_frame, text="Choose DQ Rule", command=self.get_tables_to_dq_check).grid(row=0, column=1, sticky="nsew")
-        tk.Button(top_frame, text="Deactivate User").grid(row=0, column=2, sticky="nsew")
+        #tk.Button(top_frame, text="Choose DQ Rule", command=self.get_tables_to_dq_check).grid(row=0, column=1, sticky="nsew")
+        #tk.Button(top_frame, text="Deactivate User").grid(row=0, column=2, sticky="nsew")
 
         for i in range(3):
             top_frame.grid_columnconfigure(i, weight=1)
@@ -273,9 +273,11 @@ class CheckDqPanel:
             # Tworzenie CSV dla wszystkich reguł
 
             if all_records_for_csv:
-                csv_file = "all_dq_rules_result.csv"
+                folder_path = os.path.dirname(os.path.abspath(__file__))
+                excels = os.path.join(folder_path, "excels")
+                csv_file = os.path.join(excels, "all_dq_rules_result.csv")
                 fieldnames = ['rule_id', 'record_id', 'checked_field', 'field_value', 'test_result', 'error_message']
-                folder_path = os.path.dirname(csv_file)
+                #folder_path = os.path.dirname(csv_file)
 
                 try:
                     with open(csv_file, mode="w", newline="", encoding="utf-8") as f:
@@ -285,7 +287,8 @@ class CheckDqPanel:
                             writer.writerow(record)
                     messagebox.showinfo("Export Complete",
                                         f"All rules - {len(all_records_for_csv)} records exported to CSV.")
-                    os.startfile(folder_path)
+                    #os.startfile(folder_path)
+                    os.startfile(excels)
 
                 except Exception as e:
                     messagebox.showerror("CSV Error", f"Error exporting CSV:\n{e}")
@@ -384,8 +387,11 @@ class CheckDqPanel:
                 record['error_message'] = "DQ check passed" if test_result == 1 else rule_error_message
 
             # Tworzenie CSV
-            csv_file = f"dq_rule_{rule_id}_results.csv"
-            folder_path = os.path.dirname(csv_file)
+
+            folder_path = os.path.dirname(os.path.abspath(__file__))
+            excels = os.path.join(folder_path, "excels")
+            csv_file = os.path.join(excels, f"dq_rule_{rule_id}_results.csv")
+
             fieldnames = list(records[0].keys())  # już zawiera error_message
             try:
                 with open(csv_file, mode="w", newline="", encoding="utf-8") as f:
@@ -397,7 +403,8 @@ class CheckDqPanel:
             except Exception as e:
                 messagebox.showerror("CSV Error", f"Error exporting rule {rule_id} to CSV:\n{e}")
 
-            os.startfile(folder_path)
+            os.startfile(excels)
+            #os.path.join(folder_path, "excels"))
 
         finally:
             cursor.close()

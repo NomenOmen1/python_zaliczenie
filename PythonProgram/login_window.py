@@ -9,7 +9,7 @@ class LoginWindow:
         self.root = root
         self.root.title("Login panel")
         self.root.geometry("400x300")
-        #place_window(self.root)
+        place_window(self.root)
 
         tk.Label(root, text="Username:").pack(pady=(30,0))
         self.username_entry = tk.Entry(root)
