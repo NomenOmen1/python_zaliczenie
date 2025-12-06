@@ -498,16 +498,17 @@ class DataQualityWindow:
     def forbidden_commands(self, rule_text: str):
 
         forbidden_keywords = ['DROP', 'DELETE', 'ALTER', 'TRUNCATE', 'INSERT', 'UPDATE', 'CREATE', 'RENAME']
-        allowed_characters_regex = r'^[A-Za-z0-9_ ,\.\(\)]+$'
+        #allowed_characters_regex = r'^[A-Za-z0-9_ ,\.\(\)]+$'
 
         rule_upper = rule_text.upper()
         for keyword in forbidden_keywords:
             if keyword in rule_upper:
                 raise ValueError(f"Forbidden keyword: {keyword}, you MUST NOT use this!")
-        if not re.match(allowed_characters_regex, rule_text):
-            raise ValueError(f"Forbidden keyword: {rule_text}, you MUST NOT use this!")
-        return True
 
+
+            # if not re.match(allowed_characters_regex, rule_text):
+            #     raise ValueError(f"Forbidden keyword: {rule_text}, you MUST NOT use this!")
+            # return True
 
 
 

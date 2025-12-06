@@ -273,9 +273,11 @@ class CheckDqPanel:
             # Tworzenie CSV dla wszystkich reguł
 
             if all_records_for_csv:
-                csv_file = "all_dq_rules_result.csv"
+                folder_path = os.path.dirname(os.path.abspath(__file__))
+                excels = os.path.join(folder_path, "excels")
+                csv_file = os.path.join(excels, "all_dq_rules_result.csv")
                 fieldnames = ['rule_id', 'record_id', 'checked_field', 'field_value', 'test_result', 'error_message']
-                folder_path = os.path.dirname(csv_file)
+                #folder_path = os.path.dirname(csv_file)
 
                 try:
                     with open(csv_file, mode="w", newline="", encoding="utf-8") as f:
@@ -285,7 +287,8 @@ class CheckDqPanel:
                             writer.writerow(record)
                     messagebox.showinfo("Export Complete",
                                         f"All rules - {len(all_records_for_csv)} records exported to CSV.")
-                    os.startfile(folder_path)
+                    #os.startfile(folder_path)
+                    os.startfile(excels)
 
                 except Exception as e:
                     messagebox.showerror("CSV Error", f"Error exporting CSV:\n{e}")
@@ -384,8 +387,11 @@ class CheckDqPanel:
                 record['error_message'] = "DQ check passed" if test_result == 1 else rule_error_message
 
             # Tworzenie CSV
-            csv_file = f"dq_rule_{rule_id}_results.csv"
-            folder_path = os.path.dirname(csv_file)
+
+            folder_path = os.path.dirname(os.path.abspath(__file__))
+            excels = os.path.join(folder_path, "excels")
+            csv_file = os.path.join(excels, f"dq_rule_{rule_id}_results.csv")
+
             fieldnames = list(records[0].keys())  # już zawiera error_message
             try:
                 with open(csv_file, mode="w", newline="", encoding="utf-8") as f:
@@ -397,7 +403,8 @@ class CheckDqPanel:
             except Exception as e:
                 messagebox.showerror("CSV Error", f"Error exporting rule {rule_id} to CSV:\n{e}")
 
-            os.startfile(folder_path)
+            os.startfile(excels)
+            #os.path.join(folder_path, "excels"))
 
         finally:
             cursor.close()
