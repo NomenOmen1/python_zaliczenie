@@ -1,6 +1,10 @@
+from tkinter.messagebox import showerror
+
 import mysql.connector
+from mysql.connector import Error
 from db_config import config
 import bcrypt
+from tkinter import messagebox
 
 def create_user(username: str, password: str, role: str = "user"):
     password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
@@ -80,3 +84,18 @@ def get_all_users():
     finally:
         cursor.close()
         conn.close()
+
+def change_user_role(username: str, new_role: str):
+    conn = mysql.connector.connect(**config)
+    cursor = conn.cursor()
+    try:
+        cursor.execute("UPDATE users SET role=%s WHERE username=%s", (new_role, username))
+        conn.commit()
+    except Error as e:
+        messagebox.showerror("Error", str(e))
+
+    finally:
+        cursor.close()
+        conn.close()
+
+

@@ -25,6 +25,8 @@
 1,81,name,Mariusz,1,DQ check passed
 1,82,name,Mikołaja,1,DQ check passed
 1,83,name,eugeniusz,1,DQ check passed
+1,123,name,Gucio,1,DQ check passed
+1,211,name,Thermomix,1,DQ check passed
 2,1,email,tomek@.pl,1,DQ check passed
 2,2,email,marcin@onet.pl,1,DQ check passed
 2,3,email,kasia123.pl,0,"""Email address doesn't contain '@' symbol"""
@@ -51,6 +53,8 @@
 2,81,email,mariusz@poczta11,1,DQ check passed
 2,82,email,mikolajpoczta,0,"""Email address doesn't contain '@' symbol"""
 2,83,email,gienekpoczta,0,"""Email address doesn't contain '@' symbol"""
+2,123,email,gucio@poczta,1,DQ check passed
+2,211,email,thermomix@poczta,1,DQ check passed
 4,1,email,tomek@.pl,1,DQ check passed
 4,2,email,marcin@onet.pl,1,DQ check passed
 4,3,email,kasia123.pl,1,DQ check passed
@@ -77,6 +81,8 @@
 4,81,email,mariusz@poczta11,1,DQ check passed
 4,82,email,mikolajpoczta,1,DQ check passed
 4,83,email,gienekpoczta,1,DQ check passed
+4,123,email,gucio@poczta,1,DQ check passed
+4,211,email,thermomix@poczta,1,DQ check passed
 5,1,age,15,0,"""The user must be at least 18 years old to use our program."""
 5,2,age,32,1,DQ check passed
 5,3,age,22,1,DQ check passed
@@ -103,6 +109,8 @@
 5,81,age,75,1,DQ check passed
 5,82,age,37,1,DQ check passed
 5,83,age,34,1,DQ check passed
+5,123,age,3,0,"""The user must be at least 18 years old to use our program."""
+5,211,age,35,1,DQ check passed
 6,1,age,15,1,DQ check passed
 6,2,age,32,1,DQ check passed
 6,3,age,22,1,DQ check passed
@@ -129,6 +137,8 @@
 6,81,age,75,1,DQ check passed
 6,82,age,37,1,DQ check passed
 6,83,age,34,1,DQ check passed
+6,123,age,3,1,DQ check passed
+6,211,age,35,1,DQ check passed
 8,1,age,15,0,"""test11"""
 8,2,age,32,0,"""test11"""
 8,3,age,22,1,DQ check passed
@@ -155,3 +165,5 @@
 8,81,age,75,0,"""test11"""
 8,82,age,37,0,"""test11"""
 8,83,age,34,0,"""test11"""
+8,123,age,3,0,"""test11"""
+8,211,age,35,0,"""test11"""
